@@ -24,6 +24,7 @@ export default function LoginPage() {
         router.push("/home");
       }
     } catch (err) {
+      console.log("Login error:", err);
       alert("Email หรือ Password ไม่ถูกต้อง");
     }
   };
