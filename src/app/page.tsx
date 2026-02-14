@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import api from "@/lib/axios";
 import { Calendar, MapPin, Ticket, LogOut, User } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -22,7 +23,7 @@ export default function HomePage() {
         const res = await api.get("/events");
         setEvents(res.data);
       } catch (err) {
-        console.error("Fetch events failed");
+        console.error("Fetch events failed", {err});
       } finally {
         setLoading(false);
       }
@@ -96,9 +97,11 @@ export default function HomePage() {
               {/* Poster Image */}
               <div className="h-52 bg-indigo-50 flex items-center justify-center relative overflow-hidden">
                 {event.posterUrl ? (
-                  <img
+                  <Image
                     src={event.posterUrl}
                     alt={event.title}
+                    width={400}
+                    height={208}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                   />
                 ) : (
