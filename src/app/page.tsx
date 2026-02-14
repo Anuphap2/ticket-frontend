@@ -1,175 +1,125 @@
-"use client";
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import api from "@/lib/axios";
-import { Calendar, MapPin, Ticket, LogOut, User } from "lucide-react";
-import { useRouter } from "next/navigation";
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { useEvents } from '@/hooks/useEvents';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button } from '@/components/ui';
+import { Calendar, MapPin, Ticket } from 'lucide-react';
 
 export default function HomePage() {
-  const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const { events, loading: isLoading, fetchEvents } = useEvents();
 
   useEffect(() => {
-    // เช็คว่ามี Token ไหม ถ้าไม่มีให้ดีดกลับไปหน้า Login
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    const fetchEvents = async () => {
-      try {
-        const res = await api.get("/events");
-        setEvents(res.data);
-      } catch (err) {
-        console.error("Fetch events failed", {err});
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchEvents();
-  }, [router]);
+  }, [fetchEvents]);
 
-  const handleLogout = async () => {
-    try {
-      // เรียก logout ที่หลังบ้าน (ท่าที่เราแก้เป็น @Get ไว้)
-      await api.get("/auth/logout");
-    } catch (err) {
-      console.log("Logout backend error:", err);
-    } finally {
-      // เคลียร์เครื่องแล้วดีดออก
-      localStorage.removeItem("access_token");
-      router.push("/login");
-    }
-  };
-
-  if (loading)
+  if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-indigo-600 font-medium">
-        กำลังโหลดคอนเสิร์ตสุดมันส์...
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
       </div>
     );
+  }
+
+  // Filter expired events
+  const now = new Date();
+  const activeEvents = events.filter(event => new Date(event.date) >= now);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      {/* --- Navbar --- */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex justify-between items-center">
-          <div className="flex items-center gap-2 font-bold text-2xl text-indigo-600">
-            <Ticket size={28} />
-            <span>TicketHub</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 text-slate-600 bg-slate-100 px-3 py-1 rounded-full text-sm">
-              <User size={16} />
-              <span>ยินดีต้อนรับคุณพู่กัน</span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl transition font-medium"
-            >
-              <LogOut size={18} />
-              <span>ออกจากระบบ</span>
-            </button>
-          </div>
+    <div className="min-h-screen bg-zinc-50">
+      <header className="bg-white shadow">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Ticket Booking</h1>
+          <nav className="flex gap-4">
+            <Link href="/my-bookings" className="text-sm font-medium text-zinc-600 hover:text-indigo-600">
+              My Bookings
+            </Link>
+            <AuthNav />
+          </nav>
         </div>
-      </nav>
+      </header>
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <h2 className="mb-6 text-xl font-semibold text-zinc-800">Upcoming Events (Real-time Availability)</h2>
+        {activeEvents.length === 0 ? (
+          <p className="text-center text-zinc-500">No upcoming events found.</p>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {activeEvents.map((event) => {
+              // Calculate total availability from zones (Backend should provide accurate data now)
+              let totalCapacity = 0;
+              let totalAvailable = 0;
 
-      {/* --- Main Content --- */}
-      <div className="max-w-6xl mx-auto p-6">
-        <header className="mb-10 mt-4">
-          <h1 className="text-4xl font-black text-slate-800 tracking-tight">
-            คอนเสิร์ตทั้งหมด
-          </h1>
-          <p className="text-slate-500 mt-2">
-            เลือกชมและจองตั๋วคอนเสิร์ตที่คุณชื่นชอบได้ที่นี่
-          </p>
-        </header>
+              event.zones.forEach((zone: any) => {
+                totalCapacity += zone.totalSeats;
+                totalAvailable += (zone.availableSeats);
+              });
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {events.map((event: any) => (
-            <div
-              key={event._id}
-              className="group bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-            >
-              {/* Poster Image */}
-              <div className="h-52 bg-indigo-50 flex items-center justify-center relative overflow-hidden">
-                {event.posterUrl ? (
-                  <Image
-                    src={event.posterUrl}
-                    alt={event.title}
-                    width={400}
-                    height={208}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  />
-                ) : (
-                  <Ticket size={56} className="text-indigo-200" />
-                )}
-                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 shadow-sm">
-                  COMING SOON
-                </div>
-              </div>
+              const isSoldOut = totalAvailable <= 0;
 
-              <div className="p-6">
-                <h2 className="text-xl font-bold text-slate-800 mb-3 line-clamp-1">
-                  {event.title}
-                </h2>
-
-                <div className="space-y-3 text-slate-500 text-sm mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-slate-100 rounded-lg">
-                      <Calendar size={16} className="text-indigo-500" />
+              return (
+                <Card key={event._id} className="flex flex-col overflow-hidden transition-shadow hover:shadow-md">
+                  <CardHeader className="bg-zinc-100 p-4">
+                    <CardTitle className="truncate text-lg">{event.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-1 p-4">
+                    <div className="mb-2 flex items-center text-sm text-zinc-600">
+                      <Calendar className="mr-2 h-4 w-4" />
+                      <span>{format(new Date(event.date), 'PPP p')}</span>
                     </div>
-                    <span className="font-medium">
-                      {new Date(event.date).toLocaleDateString("th-TH", {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      })}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-slate-100 rounded-lg">
-                      <MapPin size={16} className="text-indigo-500" />
+                    <div className="mb-4 flex items-center text-sm text-zinc-600">
+                      <MapPin className="mr-2 h-4 w-4" />
+                      <span className="truncate">{event.location}</span>
                     </div>
-                    <span className="font-medium">{event.location}</span>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
-                  <div>
-                    <p className="text-xs text-slate-400 font-medium">
-                      ราคาเริ่มต้น
-                    </p>
-                    <p className="text-indigo-600 font-black text-xl">
-                      ฿
-                      {event.zones && event.zones.length > 0
-                        ? Math.min(
-                            ...event.zones.map((z: any) => z.price),
-                          ).toLocaleString()
-                        : "0"}
-                    </p>
-                  </div>
-                  <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95">
-                    จองตั๋ว
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {events.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
-            <Ticket size={48} className="mx-auto text-slate-300 mb-4" />
-            <p className="text-slate-500 font-medium">
-              ยังไม่มีรายการคอนเสิร์ตในขณะนี้
-            </p>
+                    <div className="mb-4 flex items-center text-sm font-medium">
+                      <Ticket className="mr-2 h-4 w-4 text-indigo-600" />
+                      <span className={isSoldOut ? 'text-red-500' : 'text-green-600'}>
+                        {isSoldOut ? 'Sold Out' : `Available: ${totalAvailable} / ${totalCapacity}`}
+                      </span>
+                    </div>
+                    <p className="line-clamp-3 text-sm text-zinc-500">{event.description}</p>
+                  </CardContent>
+                  <CardFooter className="bg-zinc-50 p-4">
+                    {isSoldOut ? (
+                      <Button className="w-full" disabled>Sold Out</Button>
+                    ) : (
+                      <Link href={`/events/${event._id}`} className="w-full">
+                        <Button className="w-full">Book Now</Button>
+                      </Link>
+                    )}
+                  </CardFooter>
+                </Card>
+              );
+            })}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
+}
+
+// Sub-component for Navigation to avoid mixing too much logic
+import { useAuth } from '@/context/AuthContext';
+function AuthNav() {
+  const { user, logout, isAuthenticated } = useAuth();
+  if (!isAuthenticated) {
+    return (
+      <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-indigo-600">
+        Login
+      </Link>
+    )
+  }
+  return (
+    <div className="flex items-center gap-4">
+      {user?.role === 'admin' && (
+        <Link href="/admin" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+          Admin Dashboard
+        </Link>
+      )}
+      <span className="text-sm text-zinc-500">Hi, {user?.email}</span>
+      <button onClick={logout} className="text-sm font-medium text-red-600 hover:text-red-500">
+        Logout
+      </button>
+    </div>
+  )
 }
