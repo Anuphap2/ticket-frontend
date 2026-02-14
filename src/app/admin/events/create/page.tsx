@@ -5,20 +5,24 @@ import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useEvents } from '@/hooks/useEvents';
+import { uploadService } from '@/services/uploadService';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
-import { Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Upload, Loader2, ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CreateEventPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const { createEvent } = useEvents();
-  const { register, control, handleSubmit, formState: { errors } } = useForm({
+  const { register, control, handleSubmit, setValue, watch, formState: { errors } } = useForm({
     defaultValues: {
       title: '',
       description: '',
       date: '',
       location: '',
+      imageUrl: '',
       zones: [{ name: '', price: 0, totalSeats: 0 }]
     }
   });
@@ -28,12 +32,41 @@ export default function CreateEventPage() {
     name: 'zones'
   });
 
+  const imageUrl = watch('imageUrl');
+
+  // Create a preview URL when file is selected
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      // Create local preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setValue('imageUrl', previewUrl);
+    }
+  };
+
   const onSubmit = async (data: any) => {
     setIsLoading(true);
     try {
+      let finalImageUrl = '';
+
+      // Upload image if a new file is selected
+      if (selectedFile) {
+        try {
+          finalImageUrl = await uploadService.uploadImage(selectedFile);
+        } catch (error: any) {
+          console.error('Upload error:', error);
+          const message = error.response?.data?.message || 'Failed to upload image';
+          toast.error(message);
+          setIsLoading(false);
+          return; // Stop submission if upload fails
+        }
+      }
+
       // Ensure number types
       const formattedData = {
         ...data,
+        imageUrl: finalImageUrl, // Use the uploaded URL
         zones: data.zones.map((z: any) => ({
           ...z,
           price: Number(z.price),
@@ -81,6 +114,36 @@ export default function CreateEventPage() {
               </div>
               <div className="space-y-2">
                 <Input label="Location" {...register('location', { required: 'Location is required' })} error={errors.location?.message as string} />
+              </div>
+              <div className="sm:col-span-2 space-y-2">
+                <label className="text-sm font-medium">Event Image</label>
+                <div className="flex gap-4 items-start">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="pl-10 py-2"
+                      />
+                      <div className="absolute left-3 top-2.5 text-zinc-500">
+                        <Upload className="h-5 w-5" />
+                      </div>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-1">Upload a banner image (JPG, PNG)</p>
+                  </div>
+                  {imageUrl && (
+                    <div className="w-24 h-24 rounded-md overflow-hidden border border-zinc-200 relative bg-zinc-100 flex items-center justify-center">
+                      <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  {!imageUrl && (
+                    <div className="w-24 h-24 rounded-md border border-dashed border-zinc-300 bg-zinc-50 flex items-center justify-center text-zinc-400">
+                      <ImageIcon className="h-8 w-8" />
+                    </div>
+                  )}
+                </div>
+                <input type="hidden" {...register('imageUrl')} />
               </div>
             </div>
 

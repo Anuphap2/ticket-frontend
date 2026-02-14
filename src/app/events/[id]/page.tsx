@@ -137,6 +137,15 @@ export default function EventDetailsPage() {
         <div className="min-h-screen bg-zinc-50 py-12 px-4 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-3xl">
                 <Card>
+                    {event.imageUrl && (
+                        <div className="relative h-64 w-full overflow-hidden rounded-t-lg bg-zinc-100">
+                            <img
+                                src={event.imageUrl}
+                                alt={event.title}
+                                className="h-full w-full object-cover object-center"
+                            />
+                        </div>
+                    )}
                     <CardHeader>
                         <CardTitle className="text-3xl">{event.title}</CardTitle>
                         <div className="mt-2 flex flex-col gap-2 text-zinc-600 sm:flex-row sm:items-center sm:gap-6">

@@ -17,6 +17,7 @@ export interface Event {
     description: string;
     date: string;
     location: string;
+    imageUrl?: string;
     zones: Zone[];
     createdAt: string;
     updatedAt: string;

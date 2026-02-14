@@ -5,8 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import { useForm, useFieldArray } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useEvents } from '@/hooks/useEvents';
+import { uploadService } from '@/services/uploadService';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
-import { Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Plus, Trash2, ArrowLeft, Upload, Loader2, ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
@@ -15,13 +16,15 @@ export default function EditEventPage() {
     const { id } = useParams();
     const [isLoading, setIsLoading] = useState(false);
     const [isFetching, setIsFetching] = useState(true);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-    const { register, control, handleSubmit, reset, formState: { errors } } = useForm({
+    const { register, control, handleSubmit, reset, setValue, watch, formState: { errors } } = useForm({
         defaultValues: {
             title: '',
             description: '',
             date: '',
             location: '',
+            imageUrl: '',
             zones: [{ name: '', price: 0, totalSeats: 0 }]
         }
     });
@@ -32,6 +35,8 @@ export default function EditEventPage() {
     });
 
     const { updateEvent, fetchEvent, currentEvent } = useEvents();
+
+    const imageUrl = watch('imageUrl');
 
     useEffect(() => {
         if (id) {
@@ -48,6 +53,7 @@ export default function EditEventPage() {
                 description: currentEvent.description || '',
                 date: formattedDate,
                 location: currentEvent.location,
+                imageUrl: currentEvent.imageUrl || '',
                 zones: currentEvent.zones
             });
             setIsFetching(false);
@@ -55,12 +61,47 @@ export default function EditEventPage() {
     }, [currentEvent, reset]);
 
 
+    // Create a preview URL when file is selected
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setSelectedFile(file);
+
+            // ล้าง Preview URL เก่า (ถ้ามี) เพื่อประหยัด RAM
+            if (imageUrl && imageUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(imageUrl);
+            }
+
+            const previewUrl = URL.createObjectURL(file);
+            setValue('imageUrl', previewUrl);
+        }
+    };
+
     const onSubmit = async (data: any) => {
         setIsLoading(true);
+        const eventId = Array.isArray(id) ? id[0] : id; // ดึง ID ออกมาเตรียมไว้
+
         try {
-            // Ensure number types
+            let finalImageUrl = currentEvent?.imageUrl || ''; // ใช้รูปเดิมจาก DB เป็นหลัก
+
+            // 2. ถ้ามีการเลือกไฟล์ใหม่ (selectedFile ไม่เป็น null)
+            if (selectedFile) {
+                try {
+                    // *** จุดสำคัญ: ส่ง eventId ไปด้วยเพื่อให้หลังบ้าน "ลบทับ" รูปเดิม ***
+                    finalImageUrl = await uploadService.uploadImage(selectedFile, eventId);
+                } catch (error: any) {
+                    console.error('Upload error:', error);
+                    const message = error.response?.data?.message || 'Failed to upload image';
+                    toast.error(message);
+                    setIsLoading(false);
+                    return;
+                }
+            }
+
+            // 3. เตรียมข้อมูลส่งไป Update
             const formattedData = {
                 ...data,
+                imageUrl: finalImageUrl, // ใช้ URL ใหม่ที่ได้จากหลังบ้าน (หรืออันเดิมถ้าไม่ได้เปลี่ยน)
                 zones: data.zones.map((z: any) => ({
                     ...z,
                     price: Number(z.price),
@@ -68,19 +109,22 @@ export default function EditEventPage() {
                 }))
             };
 
-            const eventId = Array.isArray(id) ? id[0] : id;
             if (!eventId) return;
             const success = await updateEvent(eventId, formattedData);
+
             if (success) {
+                toast.success('อัปเดตกิจกรรมและจัดการไฟล์รูปเรียบร้อย!');
                 router.push('/admin');
             }
         } catch (error) {
             console.error(error);
-            toast.error((error as any).response?.data?.message || 'Failed to update event');
+            toast.error('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
         } finally {
             setIsLoading(false);
         }
     };
+
+
 
     if (isFetching) {
         return (
@@ -119,6 +163,36 @@ export default function EditEventPage() {
                             </div>
                             <div className="space-y-2">
                                 <Input label="Location" {...register('location', { required: 'Location is required' })} error={errors.location?.message as string} />
+                            </div>
+                            <div className="sm:col-span-2 space-y-2">
+                                <label className="text-sm font-medium">Event Image</label>
+                                <div className="flex gap-4 items-start">
+                                    <div className="flex-1">
+                                        <div className="relative">
+                                            <Input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleImageUpload}
+                                                className="pl-10 py-2"
+                                            />
+                                            <div className="absolute left-3 top-2.5 text-zinc-500">
+                                                <Upload className="h-5 w-5" />
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-zinc-500 mt-1">Upload a banner image (JPG, PNG)</p>
+                                    </div>
+                                    {imageUrl && (
+                                        <div className="w-24 h-24 rounded-md overflow-hidden border border-zinc-200 relative bg-zinc-100 flex items-center justify-center">
+                                            <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                                        </div>
+                                    )}
+                                    {!imageUrl && (
+                                        <div className="w-24 h-24 rounded-md border border-dashed border-zinc-300 bg-zinc-50 flex items-center justify-center text-zinc-400">
+                                            <ImageIcon className="h-8 w-8" />
+                                        </div>
+                                    )}
+                                </div>
+                                <input type="hidden" {...register('imageUrl')} />
                             </div>
                         </div>
 

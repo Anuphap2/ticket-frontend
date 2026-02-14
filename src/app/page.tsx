@@ -59,6 +59,15 @@ export default function HomePage() {
 
               return (
                 <Card key={event._id} className="flex flex-col overflow-hidden transition-shadow hover:shadow-md">
+                  {event.imageUrl && (
+                    <div className="relative h-48 w-full overflow-hidden">
+                      <img
+                        src={event.imageUrl}
+                        alt={event.title}
+                        className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                      />
+                    </div>
+                  )}
                   <CardHeader className="bg-zinc-100 p-4">
                     <CardTitle className="truncate text-lg">{event.title}</CardTitle>
                   </CardHeader>
