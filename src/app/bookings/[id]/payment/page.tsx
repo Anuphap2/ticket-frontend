@@ -11,7 +11,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui';
 import toast from 'react-hot-toast';
 
 // Make sure to add NEXT_PUBLIC_STRIPE_PUBLIC_KEY to your .env
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLIC_KEY || '');
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
 
 function CheckoutForm({ bookingId, amount }: { bookingId: string, amount: number }) {
     const stripe = useStripe();
@@ -31,7 +31,7 @@ function CheckoutForm({ bookingId, amount }: { bookingId: string, amount: number
         const { error } = await stripe.confirmPayment({
             elements,
             confirmParams: {
-                // Return URL where the user checks the status (your Success Page)
+                // พอกดจ่ายสำเร็จ ให้เด้งไปหน้า success ที่พู่กันสร้างไว้
                 return_url: `${window.location.origin}/bookings/${bookingId}/success`,
             },
         });
@@ -75,37 +75,38 @@ export default function PaymentPage() {
     useEffect(() => {
         const fetchBookingAndCreateIntent = async () => {
             if (!id) return;
+            console.log("🔍 Fetching booking for ID:", id);
 
             try {
-                // 1. Fetch Booking Details
-                // We need to implement getById in bookingService or assume we can fetch it.
-                // Since I just added getById, this should work.
-                // However, wait, bookingService.getById calls /bookings/:id. 
-                // Does backend have GET /bookings/:id?
-                // Checking bookings.controller.ts... it has findByUser (myBookings) and findAllForAdmin.
-                // It MISSES getOne for user!
-                // I might need to use getMyBookings and filter, or add getOne to backend.
-                // For now let's try to add getOne to backend or use getMyBookings.
-                // Using getMyBookings is safer as it checks ownership.
-
+                // 1. ลองใช้ getById โดยตรง (ถ้า Backend มี Endpoint รองรับ)
+                // ถ้ายังไม่มี ให้ใช้ getMyBookings แบบเดิมแต่เช็ค Log ดูครับ
                 const myBookings = await bookingService.getMyBookings();
-                const foundBooking = myBookings.find(b => b._id === id);
+                console.log("All My Bookings:", myBookings);
+
+                const foundBooking = myBookings.find(b => b._id.toString() === id.toString());
 
                 if (!foundBooking) {
-                    toast.error('Booking not found');
+                    console.error("❌ Booking not found in myBookings list");
+                    toast.error('หาข้อมูลการจองไม่พบ หรือคุณไม่ใช่เจ้าของรายการนี้');
                     return;
                 }
+
+                console.log("✅ Found Booking:", foundBooking);
                 setBooking(foundBooking);
 
-                // 2. Create Payment Intent
+                // 2. ขอ Client Secret จาก Backend
+                console.log("📡 Creating Payment Intent for amount:", foundBooking.totalPrice);
                 const res = await api.post('/payments/create-intent', {
-                    amount: foundBooking.totalPrice
+                    amount: foundBooking.totalPrice,
+                    bookingId: foundBooking._id // ส่ง ID ไปด้วยเผื่อ Backend ต้องใช้
                 });
+
+                console.log("💳 Received Client Secret:", res.data.clientSecret);
                 setClientSecret(res.data.clientSecret);
 
-            } catch (error) {
-                console.error(error);
-                toast.error('Failed to initialize payment');
+            } catch (error: any) {
+                console.error("🔥 Error in Payment Page:", error);
+                toast.error('ไม่สามารถเริ่มระบบชำระเงินได้: ' + (error.response?.data?.message || error.message));
             }
         };
 

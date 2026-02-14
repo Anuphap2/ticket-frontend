@@ -49,7 +49,14 @@ export default function EventDetailsPage() {
             return;
         }
 
-        setIsBooking(true); // เริ่มหมุน
+        if (!selectedZone) {
+            toast.error('Please select a zone');
+            return;
+        }
+
+        setIsBooking(true);
+        console.log("🚀 เริ่มต้นการจอง...");
+
         try {
             const res = await bookingService.create({
                 eventId: id as string,
@@ -57,40 +64,74 @@ export default function EventDetailsPage() {
                 quantity: Number(quantity),
             });
 
-            console.log('API Response:', res); // 👈 พู่กันเปิด Console ดูตรงนี้ด้วยนะว่า ID มาไหม
+            console.log("📦 ผลลัพธ์จาก API (Create):", res);
 
+            // กรณีที่ 1: ได้รับการยืนยันทันที
             if (res.status === 'confirmed' || res.status === 'pending') {
-                // *** จุดตายที่ 1: ต้องหา ID ให้เจอ ***
                 const bId = res.bookingId || res._id || (res as any).id;
+                setIsBooking(false);
 
                 if (bId) {
-                    toast.success('จองสำเร็จ! กำลังไปหน้าชำระเงิน');
-                    setIsBooking(false); // 👈 จุดตายที่ 2: หยุดหมุนก่อนย้ายหน้า
+                    console.log("🔗 ย้ายหน้าไปที่ ID:", bId);
+                    // ใช้ window.location.href ถ้า router.push ยังนิ่ง
                     router.push(`/bookings/${bId}/payment`);
                 } else {
-                    console.error('No Booking ID found in response');
-                    setIsBooking(false); // 👈 หยุดหมุน
+                    console.warn("⚠️ ไม่พบ ID ใน Response");
                     router.push('/my-bookings');
                 }
                 return;
             }
 
-            // กรณีเข้าคิว (Processing)
+            // กรณีที่ 2: Processing (Polling)
             if (res.status === 'processing' && res.trackingId) {
-                toast('กำลังเข้าคิวจองที่นั่ง...', { icon: '⏳' });
-                // ... (ลอจิก Polling เดิมของพู่กัน แต่อย่าลืมใส่ setIsBooking(false) ตอนเจอสถานะ confirmed นะครับ)
+                toast('กำลังเข้าคิวจอง...', { icon: '⏳' });
+
+                const pollInterval = setInterval(async () => {
+                    try {
+                        console.log("🔄 กำลังเช็คสถานะคิว...");
+                        const statusRes = await bookingService.checkStatus(res.trackingId);
+                        console.log("📊 สถานะปัจจุบัน:", statusRes);
+
+                        // 🎯 จุดสำคัญ: Backend ส่ง 'success' มา ไม่ใช่ 'confirmed'
+                        if (statusRes.status === 'success') {
+                            clearInterval(pollInterval);
+
+                            // 🎯 จุดสำคัญ 2: ข้อมูลอยู่ใน statusRes.data
+                            const bookingData = (statusRes as any).data;
+                            const finalId = bookingData?._id || bookingData?.id;
+
+                            console.log("✅ จองสำเร็จ! พบ ID:", finalId);
+
+                            setIsBooking(false); // เลิกหมุน
+
+                            if (finalId) {
+                                console.log("🚀 กำลังพุ่งไปหน้าจ่ายเงิน...");
+                                window.location.href = `/bookings/${finalId}/payment`;
+                            } else {
+                                console.warn("⚠️ พบ success แต่ไม่มี ID ใน data");
+                                window.location.href = '/my-bookings';
+                            }
+                        } else if (statusRes.status === 'failed' || statusRes.status === 'error') {
+                            clearInterval(pollInterval);
+                            setIsBooking(false);
+                            toast.error('การจองขัดข้องหรือที่นั่งเต็มแล้ว');
+                        }
+                    } catch (e) {
+                        console.error("❌ Polling Error:", e);
+                        clearInterval(pollInterval);
+                        setIsBooking(false);
+                    }
+                }, 2000);
             } else {
-                // ถ้าสถานะไม่ใช่ทั้ง 3 อย่างข้างบน
                 setIsBooking(false);
             }
-
         } catch (error: any) {
-            console.error('Booking Error:', error);
-            setIsBooking(false); // 👈 จุดตายที่ 3: ถ้า Error ต้องหยุดหมุนทันที!
-            toast.error(error.response?.data?.message || 'การจองขัดข้อง');
+            console.error("🔥 Booking Error:", error);
+            setIsBooking(false);
+            const msg = error.response?.data?.message || 'การจองขัดข้อง';
+            toast.error(msg);
         }
     };
-
     if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center">

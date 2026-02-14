@@ -17,12 +17,22 @@ const ManageBookingsPage = () => {
     const [filter, setFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
 
-    // ดึงข้อมูลจาก Server ทุกครั้งที่ Page หรือ Filter เปลี่ยน
+    // 1. เพิ่ม useEffect สำหรับ Debounce การค้นหา
+    useEffect(() => {
+        const delayDebounceFn = setTimeout(() => {
+            setPage(1); // กลับไปหน้า 1 ทุกครั้งที่เริ่มค้นหาใหม่
+            fetchBookings();
+        }, 500); // รอพิมพ์จบ 0.5 วินาทีค่อยยิง API
+
+        return () => clearTimeout(delayDebounceFn);
+    }, [searchTerm]);
+
+    // 2. ปรับ fetchBookings ให้รับ Parameter ค้นหา
     const fetchBookings = async () => {
         setLoading(true);
         try {
-            // เรียกใช้ getAllForAdmin ที่เราทำไว้ใน Service
-            const response = await bookingService.getAllForAdmin(page, 10);
+            // ส่งทั้ง page, limit, searchTerm และ filter ไปที่ Backend
+            const response = await bookingService.getAllForAdmin(page, 10, searchTerm, filter);
             setBookings(response.data);
             setTotalPages(response.totalPages);
         } catch (error) {
@@ -31,6 +41,7 @@ const ManageBookingsPage = () => {
             setLoading(false);
         }
     };
+
 
     useEffect(() => {
         fetchBookings();
@@ -104,30 +115,51 @@ const ManageBookingsPage = () => {
                     <p className="text-center py-10">กำลังโหลดข้อมูลแสนรายการ...</p>
                 ) : (
                     bookings.map((booking) => (
-                        <Card key={booking._id} className="hover:shadow-md transition-shadow">
+                        <Card key={booking._id} className="hover:shadow-md transition-all border-l-4 border-l-indigo-500">
                             <div className="p-5 flex justify-between items-center">
                                 <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-bold text-lg">{typeof booking.eventId === 'object' ? booking.eventId.title : 'กิจกรรม'}</span>
-                                        <span className={`px-2 py-0.5 rounded text-xs ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-bold text-lg text-zinc-900">
+                                            {typeof booking.eventId === 'object' ? booking.eventId.title : 'กิจกรรม'}
+                                        </span>
+                                        {/* Badge แยกตามสถานะ */}
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
+                                            booking.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                                                'bg-yellow-100 text-yellow-700'
+                                            }`}>
                                             {booking.status}
                                         </span>
                                     </div>
-                                    <p className="text-xs text-zinc-400 font-mono">{booking._id}</p>
-                                    <div className="flex gap-3 text-sm text-zinc-600">
-                                        <span className="flex items-center gap-1"><Ticket className="w-4 h-4" /> {booking.quantity} ใบ</span>
-                                        <span>โซน: {booking.zoneName}</span>
+
+                                    <p className="text-xs text-zinc-400 font-mono flex items-center gap-1">
+                                        ID: {booking._id}
+                                    </p>
+
+                                    <div className="flex gap-4 text-sm text-zinc-600 pt-1">
+                                        <span className="flex items-center gap-1 font-medium text-indigo-600">
+                                            <Ticket className="w-4 h-4" /> {booking.quantity} ใบ
+                                        </span>
+                                        <span className="bg-zinc-100 px-2 rounded text-xs flex items-center">
+                                            โซน: {booking.zoneName}
+                                        </span>
+                                        <span className="font-semibold">
+                                            ฿{booking.totalPrice?.toLocaleString()}
+                                        </span>
                                     </div>
                                 </div>
+
+                                {/* Action Buttons: อนุมัติ/ยกเลิก */}
                                 <div className="flex gap-2">
-                                    {booking.status !== 'confirmed' && (
-                                        <Button size="sm" onClick={() => handleUpdateStatus(booking._id, 'confirmed')} className="bg-indigo-600">
+                                    {booking.status !== 'confirmed' && booking.status !== 'cancelled' && (
+                                        <Button size="sm" onClick={() => handleUpdateStatus(booking._id, 'confirmed')} className="bg-indigo-600 hover:bg-indigo-700">
                                             อนุมัติ
                                         </Button>
                                     )}
-                                    <Button size="sm" variant="outline" onClick={() => handleUpdateStatus(booking._id, 'cancelled')} className="text-red-500 border-red-200">
-                                        ยกเลิก
-                                    </Button>
+                                    {booking.status !== 'cancelled' && (
+                                        <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(booking._id, 'cancelled')} className="text-red-500 hover:bg-red-50 hover:text-red-600">
+                                            ยกเลิก
+                                        </Button>
+                                    )}
                                 </div>
                             </div>
                         </Card>
