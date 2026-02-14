@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { useEvents } from '@/hooks/useEvents';
@@ -27,18 +28,8 @@ export default function HomePage() {
   const activeEvents = events.filter(event => new Date(event.date) >= now);
 
   return (
-    <div className="min-h-screen bg-zinc-50">
-      <header className="bg-white shadow">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Ticket Booking</h1>
-          <nav className="flex gap-4">
-            <Link href="/my-bookings" className="text-sm font-medium text-zinc-600 hover:text-indigo-600">
-              My Bookings
-            </Link>
-            <AuthNav />
-          </nav>
-        </div>
-      </header>
+    <div className="min-h-screen bg-[#1A1A1D]">
+      <Navbar />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <h2 className="mb-6 text-xl font-semibold text-zinc-800">Upcoming Events (Real-time Availability)</h2>
         {activeEvents.length === 0 ? (
@@ -61,7 +52,7 @@ export default function HomePage() {
                 <Card key={event._id} className="flex flex-col overflow-hidden transition-shadow hover:shadow-md">
                   {event.imageUrl && (
                     <div className="relative h-48 w-full overflow-hidden">
-                      <img
+                      <Image
                         src={event.imageUrl}
                         alt={event.title}
                         className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
@@ -109,6 +100,7 @@ export default function HomePage() {
 
 // Sub-component for Navigation to avoid mixing too much logic
 import { useAuth } from '@/context/AuthContext';
+import { Navbar } from '@/components/navbar';
 function AuthNav() {
   const { user, logout, isAuthenticated } = useAuth();
   if (!isAuthenticated) {
