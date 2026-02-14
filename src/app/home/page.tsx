@@ -1,90 +1,172 @@
-'use client';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { LogOut, Ticket, Calendar, MapPin } from 'lucide-react';
-import api from '@/lib/axios';
+"use client";
+import { useEffect, useState } from "react";
+import api from "@/lib/axios";
+import { Calendar, MapPin, Ticket, LogOut, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const [events, setEvents] = useState([]); // เตรียมไว้เก็บข้อมูลจากหลังบ้าน
 
-  // เช็คสิทธิ์เบื้องต้น
   useEffect(() => {
-    const token = localStorage.getItem('access_token');
+    // เช็คว่ามี Token ไหม ถ้าไม่มีให้ดีดกลับไปหน้า Login
+    const token = localStorage.getItem("access_token");
     if (!token) {
-      router.push('/login');
+      router.push("/login");
+      return;
     }
+
+    const fetchEvents = async () => {
+      try {
+        const res = await api.get("/events");
+        setEvents(res.data);
+      } catch (err) {
+        console.error("Fetch events failed");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEvents();
   }, [router]);
 
   const handleLogout = async () => {
     try {
-      await api.get('/auth/logout'); // บอกหลังบ้าน
+      // เรียก logout ที่หลังบ้าน (ท่าที่เราแก้เป็น @Get ไว้)
+      await api.get("/auth/logout");
     } catch (err) {
-      console.error('Logout error');
+      console.log("Logout backend error:", err);
     } finally {
-      localStorage.removeItem('access_token');
-      router.push('/login');
+      // เคลียร์เครื่องแล้วดีดออก
+      localStorage.removeItem("access_token");
+      router.push("/login");
     }
   };
 
+  if (loading)
+    return (
+      <div className="flex min-h-screen items-center justify-center text-indigo-600 font-medium">
+        กำลังโหลดคอนเสิร์ตสุดมันส์...
+      </div>
+    );
+
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Navbar */}
-      <nav className="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
-        <div className="flex items-center gap-2 font-bold text-2xl text-indigo-600">
-          <Ticket size={28} />
-          <span>TicketHub</span>
+      {/* --- Navbar --- */}
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex justify-between items-center">
+          <div className="flex items-center gap-2 font-bold text-2xl text-indigo-600">
+            <Ticket size={28} />
+            <span>TicketHub</span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-2 text-slate-600 bg-slate-100 px-3 py-1 rounded-full text-sm">
+              <User size={16} />
+              <span>ยินดีต้อนรับคุณพู่กัน</span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 text-red-500 hover:bg-red-50 px-4 py-2 rounded-xl transition font-medium"
+            >
+              <LogOut size={18} />
+              <span>ออกจากระบบ</span>
+            </button>
+          </div>
         </div>
-        <button 
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-slate-600 hover:text-red-600 font-medium transition"
-        >
-          <LogOut size={20} />
-          ออกจากระบบ
-        </button>
       </nav>
 
-      {/* Hero Section */}
-      <header className="py-12 px-6 text-center bg-gradient-to-r from-indigo-600 to-violet-600 text-white">
-        <h1 className="text-4xl font-bold mb-4">ค้นหาคอนเสิร์ตที่คุณต้องการ</h1>
-        <p className="text-indigo-100 text-lg">จองตั๋วได้ง่ายๆ ในไม่กี่ขั้นตอน</p>
-      </header>
+      {/* --- Main Content --- */}
+      <div className="max-w-6xl mx-auto p-6">
+        <header className="mb-10 mt-4">
+          <h1 className="text-4xl font-black text-slate-800 tracking-tight">
+            คอนเสิร์ตทั้งหมด
+          </h1>
+          <p className="text-slate-500 mt-2">
+            เลือกชมและจองตั๋วคอนเสิร์ตที่คุณชื่นชอบได้ที่นี่
+          </p>
+        </header>
 
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-bold text-slate-800">อีเวนต์ยอดนิยม</h2>
-          <span className="text-indigo-600 font-medium cursor-pointer">ดูทั้งหมด</span>
-        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {events.map((event: any) => (
+            <div
+              key={event._id}
+              className="group bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+            >
+              {/* Poster Image */}
+              <div className="h-52 bg-indigo-50 flex items-center justify-center relative overflow-hidden">
+                {event.posterUrl ? (
+                  <img
+                    src={event.posterUrl}
+                    alt={event.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                ) : (
+                  <Ticket size={56} className="text-indigo-200" />
+                )}
+                <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-indigo-600 shadow-sm">
+                  COMING SOON
+                </div>
+              </div>
 
-        {/* Event Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* ตัวอย่างการ์ดอีเวนต์ (Mockup) */}
-          {[1, 2, 3].map((item) => (
-            <div key={item} className="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition">
-              <div className="h-48 bg-slate-200 animate-pulse" /> {/* Placeholder รูปภาพ */}
-              <div className="p-5">
-                <h3 className="text-xl font-bold text-slate-800 mb-2">ชื่อคอนเสิร์ต {item}</h3>
-                <div className="space-y-2 text-slate-500 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Calendar size={16} />
-                    <span>25 กุมภาพันธ์ 2026</span>
+              <div className="p-6">
+                <h2 className="text-xl font-bold text-slate-800 mb-3 line-clamp-1">
+                  {event.title}
+                </h2>
+
+                <div className="space-y-3 text-slate-500 text-sm mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      <Calendar size={16} className="text-indigo-500" />
+                    </div>
+                    <span className="font-medium">
+                      {new Date(event.date).toLocaleDateString("th-TH", {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin size={16} />
-                    <span>สนามกีฬากลางเชียงใหม่</span>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-100 rounded-lg">
+                      <MapPin size={16} className="text-indigo-500" />
+                    </div>
+                    <span className="font-medium">{event.location}</span>
                   </div>
                 </div>
-                <button 
-                  className="w-full mt-6 py-2 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition"
-                >
-                  จองที่นั่ง
-                </button>
+
+                <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                  <div>
+                    <p className="text-xs text-slate-400 font-medium">
+                      ราคาเริ่มต้น
+                    </p>
+                    <p className="text-indigo-600 font-black text-xl">
+                      ฿
+                      {event.zones && event.zones.length > 0
+                        ? Math.min(
+                            ...event.zones.map((z: any) => z.price),
+                          ).toLocaleString()
+                        : "0"}
+                    </p>
+                  </div>
+                  <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95">
+                    จองตั๋ว
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
-      </main>
+
+        {events.length === 0 && (
+          <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-slate-300">
+            <Ticket size={48} className="mx-auto text-slate-300 mb-4" />
+            <p className="text-slate-500 font-medium">
+              ยังไม่มีรายการคอนเสิร์ตในขณะนี้
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
