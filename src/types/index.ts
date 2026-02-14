@@ -36,5 +36,7 @@ export interface Booking {
     quantity: number;
     status: 'pending' | 'confirmed' | 'cancelled';
     trackingId?: string;
+    totalPrice: number; // Backend sends this
+    event?: Event; // Some endpoints might populate this field instead of eventId
     createdAt: string;
 }

@@ -11,7 +11,12 @@ export interface AdminBookingsResponse {
 
 export const bookingService = {
     // 1. จองตั๋ว (จะได้รับ trackingId กลับมา)
-    create: async (data: { eventId: string; zoneName: string; quantity: number }): Promise<{ trackingId: string; status: string }> => {
+    create: async (data: { eventId: string; zoneName: string; quantity: number }): Promise<{
+        trackingId: string;
+        status: string;
+        bookingId?: string;
+        _id?: string;
+    }> => {
         const response = await api.post('/bookings', data);
         return response.data;
     },
@@ -43,5 +48,10 @@ export const bookingService = {
     getAll: async (): Promise<Booking[]> => {
         const response = await api.get('/bookings/all-bookings?page=1&limit=1000');
         return response.data.data;
+    },
+
+    getById: async (id: string): Promise<Booking> => {
+        const response = await api.get(`/bookings/${id}`);
+        return response.data;
     }
 };
