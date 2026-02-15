@@ -1,28 +1,33 @@
 import { useState, useCallback } from 'react';
-import useSWR, { mutate } from 'swr';
+import useSWR from 'swr';
 import { eventService } from '@/services/eventService';
 import { Event } from '@/types';
 import toast from 'react-hot-toast';
 
 export const useEvents = () => {
-    // Use SWR for fetching events with polling every 3 seconds
-    const { data: events = [], error, isLoading, mutate: mutateEvents } = useSWR<Event[]>(
+    // 1. ดึงข้อมูลผ่าน SWR
+    const { data: response, error, isLoading, mutate: mutateEvents } = useSWR(
         '/events',
         eventService.getAll,
         {
-            refreshInterval: 3000, // Poll every 3 seconds for real-time like updates
+            refreshInterval: 3000,
             revalidateOnFocus: true
         }
     );
 
+    // 🎯 หัวใจสำคัญ: ดึง Array จริงๆ ออกมาจากโครงสร้างใหม่ { success: true, data: [...] }
+    const events: Event[] = (Array.isArray(response) ? response : (response as any)?.data) || [];
+
     const [currentEvent, setCurrentEvent] = useState<Event | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
 
+    // 2. ดึงข้อมูลรายอัน (Single Event)
     const fetchEvent = useCallback(async (id: string) => {
         setActionLoading(true);
         try {
-            const data = await eventService.getById(id);
-            setCurrentEvent(data);
+            const res = await eventService.getById(id);
+            // 🎯 อย่าลืมว่า API getById ก็ถูก Interceptor ครอบเหมือนกัน
+            setCurrentEvent((res as any)?.data || res);
         } catch (error) {
             console.error(error);
             toast.error('Failed to load event');
@@ -31,11 +36,12 @@ export const useEvents = () => {
         }
     }, []);
 
+    // 3. สร้างกิจกรรม
     const createEvent = async (data: any) => {
         setActionLoading(true);
         try {
             await eventService.create(data);
-            mutateEvents(); // Revalidate SWR data
+            mutateEvents();
             toast.success('Event created');
             return true;
         } catch (error: any) {
@@ -46,6 +52,7 @@ export const useEvents = () => {
         }
     };
 
+    // 4. อัปเดตกิจกรรม
     const updateEvent = async (id: string, data: any) => {
         setActionLoading(true);
         try {
@@ -61,6 +68,7 @@ export const useEvents = () => {
         }
     };
 
+    // 5. ลบกิจกรรม
     const deleteEvent = async (id: string) => {
         if (!window.confirm('Delete this event?')) return false;
 
@@ -79,10 +87,10 @@ export const useEvents = () => {
     };
 
     return {
-        events,
+        events, // ตอนนี้เป็น Array แน่นอน ไม่พังตอน .filter แล้วครับ
         currentEvent,
         loading: isLoading || actionLoading,
-        fetchEvents: mutateEvents, // exposing mutate as fetchEvents for compatibility
+        fetchEvents: mutateEvents,
         fetchEvent,
         createEvent,
         updateEvent,

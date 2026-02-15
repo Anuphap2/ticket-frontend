@@ -89,9 +89,9 @@ export default function MyBookingsPage() {
                     <div className="space-y-4">
                         {bookings.map((booking) => {
                             // Handle populated event or just ID (though usually it should be populated)
-                            const eventTitle = typeof booking.eventId === 'object' ? booking.eventId.title : 'Event Details Unavailable';
-                            const eventDate = typeof booking.eventId === 'object' ? booking.eventId.date : null;
-                            const eventLocation = typeof booking.eventId === 'object' ? booking.eventId.location : null;
+                            const eventTitle = booking.eventId && typeof booking.eventId === 'object' ? (booking.eventId as any).title : 'Event Details Unavailable';
+                            const eventDate = booking.eventId && typeof booking.eventId === 'object' ? (booking.eventId as any).date : null;
+                            const eventLocation = booking.eventId && typeof booking.eventId === 'object' ? (booking.eventId as any).location : null;
 
                             return (
                                 <Card key={booking._id} className="overflow-hidden">

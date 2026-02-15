@@ -27,7 +27,15 @@ export const uploadService = {
                 },
             });
 
-            return response.data.url;
+            // Handle wrapped response from TransformInterceptor
+            // Backend returns: { success: true, data: { url: "..." } }
+            // Axios response.data is the whole object.
+            const responseData = response.data;
+            if (responseData.data && responseData.data.url) {
+                return responseData.data.url;
+            }
+            // Fallback for non-wrapped or direct structure (just in case)
+            return responseData.url || '';
         } catch (error: any) {
             if (error.response) {
                 console.error('Upload Error Details:', error.response.data);

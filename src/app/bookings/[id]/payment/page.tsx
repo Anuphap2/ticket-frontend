@@ -97,8 +97,7 @@ export default function PaymentPage() {
                 // 2. ขอ Client Secret จาก Backend
                 console.log("📡 Creating Payment Intent for amount:", foundBooking.totalPrice);
                 const res = await api.post('/payments/create-intent', {
-                    amount: foundBooking.totalPrice,
-                    bookingId: foundBooking._id // ส่ง ID ไปด้วยเผื่อ Backend ต้องใช้
+                    amount: foundBooking.totalPrice
                 });
 
                 console.log("💳 Received Client Secret:", res.data.clientSecret);

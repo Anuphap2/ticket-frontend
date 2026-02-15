@@ -1,12 +1,10 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { format } from 'date-fns';
-import { useEvents } from '@/hooks/useEvents';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button } from '@/components/ui';
-import { Calendar, MapPin, Ticket } from 'lucide-react';
+import React, { useEffect } from "react";
+import { useEvents } from "@/hooks/useEvents";
+import { Navbar } from "@/components/navbar";
+import { HeroSection } from "@/components/HeroSection";
+import { EventCard } from "@/components/EventCard";
 
 export default function HomePage() {
   const { events, loading: isLoading, fetchEvents } = useEvents();
@@ -17,7 +15,7 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent"></div>
       </div>
     );
@@ -25,102 +23,41 @@ export default function HomePage() {
 
   // Filter expired events
   const now = new Date();
-  const activeEvents = events.filter(event => new Date(event.date) >= now);
+  const activeEvents = events.filter((event) => new Date(event.date) >= now);
 
   return (
-    <div className="min-h-screen bg-[#1A1A1D]">
+    <div className="min-h-screen bg-zinc-950 text-white selection:bg-indigo-500/30">
       <Navbar />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <h2 className="mb-6 text-xl font-semibold text-zinc-800">Upcoming Events (Real-time Availability)</h2>
+
+      <HeroSection />
+
+      <main className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8" id="upcoming-events">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-bold tracking-tight text-white">
+            Upcoming Events
+          </h2>
+          <span className="text-zinc-400 text-sm">{activeEvents.length} events available</span>
+        </div>
+
         {activeEvents.length === 0 ? (
-          <p className="text-center text-zinc-500">No upcoming events found.</p>
+          <div className="text-center py-20 bg-zinc-900/50 rounded-2xl border border-zinc-800 border-dashed">
+            <p className="text-zinc-500 text-lg">No upcoming events found.</p>
+            <p className="text-zinc-600 text-sm mt-2">Check back later for new announcements.</p>
+          </div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {activeEvents.map((event) => {
-              // Calculate total availability from zones (Backend should provide accurate data now)
-              let totalCapacity = 0;
-              let totalAvailable = 0;
-
-              event.zones.forEach((zone: any) => {
-                totalCapacity += zone.totalSeats;
-                totalAvailable += (zone.availableSeats);
-              });
-
-              const isSoldOut = totalAvailable <= 0;
-
-              return (
-                <Card key={event._id} className="flex flex-col overflow-hidden transition-shadow hover:shadow-md">
-                  {event.imageUrl && (
-                    <div className="relative h-48 w-full overflow-hidden">
-                      <Image
-                        src={event.imageUrl}
-                        alt={event.title}
-                        className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-                      />
-                    </div>
-                  )}
-                  <CardHeader className="bg-zinc-100 p-4">
-                    <CardTitle className="truncate text-lg">{event.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-1 p-4">
-                    <div className="mb-2 flex items-center text-sm text-zinc-600">
-                      <Calendar className="mr-2 h-4 w-4" />
-                      <span>{format(new Date(event.date), 'PPP p')}</span>
-                    </div>
-                    <div className="mb-4 flex items-center text-sm text-zinc-600">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      <span className="truncate">{event.location}</span>
-                    </div>
-                    <div className="mb-4 flex items-center text-sm font-medium">
-                      <Ticket className="mr-2 h-4 w-4 text-indigo-600" />
-                      <span className={isSoldOut ? 'text-red-500' : 'text-green-600'}>
-                        {isSoldOut ? 'Sold Out' : `Available: ${totalAvailable} / ${totalCapacity}`}
-                      </span>
-                    </div>
-                    <p className="line-clamp-3 text-sm text-zinc-500">{event.description}</p>
-                  </CardContent>
-                  <CardFooter className="bg-zinc-50 p-4">
-                    {isSoldOut ? (
-                      <Button className="w-full" disabled>Sold Out</Button>
-                    ) : (
-                      <Link href={`/events/${event._id}`} className="w-full">
-                        <Button className="w-full">Book Now</Button>
-                      </Link>
-                    )}
-                  </CardFooter>
-                </Card>
-              );
-            })}
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            {activeEvents.map((event) => (
+              <EventCard key={event._id} event={event} />
+            ))}
           </div>
         )}
       </main>
+
+      <footer className="border-t border-zinc-800 bg-zinc-950 py-12 mt-12">
+        <div className="mx-auto max-w-7xl px-4 text-center text-zinc-500">
+          <p>&copy; 2024 TicketMaster Clone. All rights reserved.</p>
+        </div>
+      </footer>
     </div>
   );
-}
-
-// Sub-component for Navigation to avoid mixing too much logic
-import { useAuth } from '@/context/AuthContext';
-import { Navbar } from '@/components/navbar';
-function AuthNav() {
-  const { user, logout, isAuthenticated } = useAuth();
-  if (!isAuthenticated) {
-    return (
-      <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-indigo-600">
-        Login
-      </Link>
-    )
-  }
-  return (
-    <div className="flex items-center gap-4">
-      {user?.role === 'admin' && (
-        <Link href="/admin" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-          Admin Dashboard
-        </Link>
-      )}
-      <span className="text-sm text-zinc-500">Hi, {user?.email}</span>
-      <button onClick={logout} className="text-sm font-medium text-red-600 hover:text-red-500">
-        Logout
-      </button>
-    </div>
-  )
 }

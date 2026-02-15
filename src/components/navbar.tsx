@@ -3,8 +3,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import gsap from "gsap";
+import { useAuth } from "@/context/AuthContext";
 
 export function Navbar() {
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
 
   // สร้าง Ref สำหรับจับ Element ที่ต้องการทำ Animation
@@ -84,13 +86,49 @@ export function Navbar() {
               />
             </svg>
           </button>
-          <div className="w-16 text-right">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
-            >
-              Login
-            </Link>
+          <div className="flex items-center gap-4 text-right">
+            {isAuthenticated ? (
+              <>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+                  >
+                    Admin Dashboard
+                  </Link>
+                )}
+                <span className="text-sm font-medium text-black">
+                  {user?.email}
+                </span>
+                <Link
+                  href="/my-bookings"
+                  className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
+                >
+                  My Bookings
+                </Link>
+                <button
+                  onClick={logout}
+                  className="text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
+                >
+                  Logout
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/register"
+                  className="text-sm font-medium px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors"
+                >
+                  Register
+                </Link>
+              </>
+            )}
           </div>
         </div>
 

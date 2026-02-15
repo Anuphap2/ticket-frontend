@@ -11,7 +11,7 @@ export interface AdminBookingsResponse {
 
 export const bookingService = {
     // 1. จองตั๋ว (จะได้รับ trackingId กลับมา)
-    create: async (data: { eventId: string; zoneName: string; quantity: number }): Promise<{
+    create: async (data: { eventId: string; zoneName: string; quantity: number; seatNumbers?: string[] }): Promise<{
         trackingId: string;
         status: string;
         bookingId?: string;
@@ -33,10 +33,14 @@ export const bookingService = {
         return response.data;
     },
 
-    // 4. สำหรับ Admin: ดูตั๋วทั้งหมด (รองรับ Pagination สำหรับตั๋วแสนใบ)
     getAllForAdmin: async (page: number = 1, limit: number = 20): Promise<AdminBookingsResponse> => {
-        const response = await api.get(`/bookings/all-bookings?page=${page}&limit=${limit}`);
-        return response.data;
+        const response: any = await api.get(`/bookings/all-bookings?page=${page}&limit=${limit}`);
+        return {
+            data: response.data,
+            total: response.meta?.total || 0,
+            currentPage: Number(response.meta?.page) || 1,
+            totalPages: Math.ceil((response.meta?.total || 0) / limit)
+        };
     },
 
     updateStatus: async (id: string, status: string): Promise<Booking> => {
@@ -46,12 +50,8 @@ export const bookingService = {
 
     // 6. Generic getAll for hooks that expect a simple list (fetches first page with high limit)
     getAll: async (): Promise<Booking[]> => {
-        const response = await api.get('/bookings/all-bookings?page=1&limit=1000');
-        return response.data.data;
-    },
-
-    getById: async (id: string): Promise<Booking> => {
-        const response = await api.get(`/bookings/${id}`);
+        const response: any = await api.get('/bookings/all-bookings?page=1&limit=1000');
+        // Axios interceptor returns the body object { success, data, meta }
         return response.data;
     }
 };

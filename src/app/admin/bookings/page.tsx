@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { bookingService } from '@/services/bookingService';
 import { Card, Button } from '@/components/ui';
-import { Search, ChevronLeft, ChevronRight, Ticket } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Ticket } from 'lucide-react';
 import { Booking } from '@/types';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -14,29 +14,19 @@ const ManageBookingsPage = () => {
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [filter, setFilter] = useState('all');
-    const [searchTerm, setSearchTerm] = useState('');
 
-    // 1. เพิ่ม useEffect สำหรับ Debounce การค้นหา
-    useEffect(() => {
-        const delayDebounceFn = setTimeout(() => {
-            setPage(1); // กลับไปหน้า 1 ทุกครั้งที่เริ่มค้นหาใหม่
-            fetchBookings();
-        }, 500); // รอพิมพ์จบ 0.5 วินาทีค่อยยิง API
+    // 1. เพิ่ม useEffect สำหรับ Debounce การค้นหา - ลบทิ้งเพราะ Backend ไม่รองรับ Search/Filter
 
-        return () => clearTimeout(delayDebounceFn);
-    }, [searchTerm]);
-
-    // 2. ปรับ fetchBookings ให้รับ Parameter ค้นหา
+    // 2. ปรับ fetchBookings 
     const fetchBookings = async () => {
         setLoading(true);
         try {
-            // ส่งทั้ง page, limit, searchTerm และ filter ไปที่ Backend
-            const response = await bookingService.getAllForAdmin(page, 10, searchTerm, filter);
-            setBookings(response.data);
-            setTotalPages(response.totalPages);
+            const response = await bookingService.getAllForAdmin(page, 10);
+            setBookings(response.data || []);
+            setTotalPages(response.totalPages || 1);
         } catch (error) {
             toast.error('ไม่สามารถดึงข้อมูลตั๋วได้');
+            setBookings([]);
         } finally {
             setLoading(false);
         }
@@ -45,7 +35,7 @@ const ManageBookingsPage = () => {
 
     useEffect(() => {
         fetchBookings();
-    }, [page, filter]);
+    }, [page]);
 
     const handleUpdateStatus = async (id: string, status: string) => {
         try {
@@ -76,16 +66,8 @@ const ManageBookingsPage = () => {
 
             {/* ส่วนค้นหาและ Pagination */}
             <div className="flex flex-col sm:flex-row justify-between gap-4 bg-white p-4 rounded-lg border">
-                <div className="relative w-full sm:w-64">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-500" />
-                    <input
-                        type="text"
-                        placeholder="ค้นหาด้วย ID..."
-                        className="w-full pl-9 h-9 rounded-md border text-sm"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
+                <div></div>
+
 
                 {/* Pagination Controls */}
                 <div className="flex items-center gap-2">
@@ -120,7 +102,7 @@ const ManageBookingsPage = () => {
                                 <div className="space-y-1">
                                     <div className="flex items-center gap-3">
                                         <span className="font-bold text-lg text-zinc-900">
-                                            {typeof booking.eventId === 'object' ? booking.eventId.title : 'กิจกรรม'}
+                                            {booking.eventId && typeof booking.eventId === 'object' ? (booking.eventId as any).title || 'Unknown Event' : 'กิจกรรม'}
                                         </span>
                                         {/* Badge แยกตามสถานะ */}
                                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :

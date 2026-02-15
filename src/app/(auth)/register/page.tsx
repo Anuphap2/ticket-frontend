@@ -18,7 +18,10 @@ export default function RegisterPage() {
     const onSubmit = async (data: any) => {
         setIsLoading(true);
         try {
-            const { access_token, refresh_token } = await authService.register(data);
+            console.log("Registering with data:", data);
+            const response = await authService.register(data);
+            console.log("Register response:", response);
+            const { access_token, refresh_token } = response;
 
             // We need to fetch user profile to get role and details
             const user = await authService.getProfile(access_token);

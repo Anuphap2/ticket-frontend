@@ -21,11 +21,22 @@ export interface Event {
     zones: Zone[];
     createdAt: string;
     updatedAt: string;
+    type?: 'seated' | 'standing';
+    rows?: number;
+    seatsPerRow?: number;
+    seats?: {
+        seatNo: string;
+        isAvailable: boolean;
+    }[];
 }
 
 export interface Booking {
     _id: string;
-    userId: string;
+    userId: string | {
+        _id: string;
+        name: string;
+        email: string;
+    };
     eventId: {
         _id: string;
         title: string;

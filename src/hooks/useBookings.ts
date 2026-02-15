@@ -1,30 +1,27 @@
-import { useState, useCallback } from 'react';
-import useSWR, { mutate } from 'swr';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { bookingService } from '@/services/bookingService';
 import { Booking } from '@/types';
 import toast from 'react-hot-toast';
 
 export const useBookings = (isAdmin: boolean = false) => {
-    // Only fetch all bookings if admin, otherwise don't auto-fetch in this hook (or separate hook)
-    // For now, we'll assume this hook is used in Admin context if isAdmin is true
+    // 🎯 1. ใช้ key ที่เราแยกไว้ตาม Role
+    const key = isAdmin ? '/bookings/all-bookings' : '/bookings/myBookings';
 
-    const key = isAdmin ? '/bookings' : null;
-
-    const { data: bookings = [], error, isLoading, mutate: mutateBookings } = useSWR<Booking[]>(
+    const { data: response, error, isLoading, mutate: mutateBookings } = useSWR(
         key,
-        bookingService.getAll,
-        {
-            refreshInterval: 5000,
-            shouldRetryOnError: false // prevent spamming if endpoint doesn't exist
-        }
+        bookingService.getAll
     );
 
-    const [loading, setLoading] = useState(false);
+    // 🎯 3. แกะกล่องข้อมูลให้ถูกชั้น
+    const bookings: Booking[] = (response as any)?.data || [];
+    const [actionLoading, setActionLoading] = useState(false);
 
     const updateStatus = async (id: string, status: 'confirmed' | 'cancelled' | 'pending') => {
-        setLoading(true);
+        setActionLoading(true);
         try {
             await bookingService.updateStatus(id, status);
+            // 🎯 เรียกใช้ mutate ที่ดึงออกมาจาก SWR
             mutateBookings();
             toast.success(`Booking ${status}`);
             return true;
@@ -32,13 +29,13 @@ export const useBookings = (isAdmin: boolean = false) => {
             toast.error(error.response?.data?.message || 'Failed to update status');
             return false;
         } finally {
-            setLoading(false);
+            setActionLoading(false);
         }
     };
 
     return {
         bookings,
-        loading: isLoading || loading,
+        loading: isLoading || actionLoading,
         mutateBookings,
         updateStatus
     };

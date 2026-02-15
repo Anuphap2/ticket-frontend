@@ -17,50 +17,46 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // 🎯 แกะให้ถึงก้อนเนื้อข้อมูล (data.data) หรือก้อนหลัก (data)
+    if (response.data && response.data.success) {
+      // คืนค่าก้อนเนื้อข้อมูลออกไปเลย เพื่อให้ service รับไปใช้ง่ายๆ
+      return response.data;
+    }
+    return response;
+  },
   async (error) => {
     const originalRequest = error.config;
-    
-    // Check if error is 401 and we haven't tried to refresh yet
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      
+
       try {
-        // Here we would handle token refresh if the backend supports it via a specific endpoint
-        // For now, we'll just redirect to login if we can't refresh or if it fails
-        // If you have a refresh token implementation:
-        /*
         const refreshToken = localStorage.getItem('refreshToken');
-        const response = await axios.post('http://localhost:3000/auth/refresh', {}, {
-             headers: { Authorization: `Bearer ${refreshToken}` }
-        });
-        const { access_token } = response.data;
-        localStorage.setItem('accessToken', access_token);
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-        return api(originalRequest);
-        */
-        
-        // For this implementation, we will logout on 401 to be safe until refresh is fully implemented
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
+        if (refreshToken) {
+          // 🎯 ยิงไปที่ endpoint refresh ของเรา (อิงตาม Backend ที่เราทำ)
+          const res = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {}, {
+            headers: { Authorization: `Bearer ${refreshToken}` }
+          });
+
+          // 🎯 แกะ data จากก้อนที่ refresh ได้มา
+          const { access_token, refresh_token: new_refresh } = res.data.data;
+
+          localStorage.setItem('accessToken', access_token);
+          localStorage.setItem('refreshToken', new_refresh);
+
+          originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          return api(originalRequest);
         }
       } catch (refreshError) {
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-          localStorage.removeItem('user');
+          localStorage.clear(); // ล้างให้หมดแล้วไปล็อกอินใหม่
           window.location.href = '/login';
         }
-        return Promise.reject(refreshError);
       }
     }
     return Promise.reject(error);
