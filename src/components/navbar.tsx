@@ -56,29 +56,13 @@ export function Navbar() {
     };
   }, [isOpen]);
 
-  // Add shadow on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!navRef.current) return;
-
-      if (window.scrollY > 20) {
-        navRef.current.classList.add("shadow-xl");
-      } else {
-        navRef.current.classList.remove("shadow-xl");
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   return (
     <nav
       ref={navRef}
       className="fixed top-0 left-0 w-full z-50 transition-all duration-300"
     >
       {/* เปลี่ยน bg-white เป็น bg-white/80 เพื่อให้ backdrop-blur ทำงาน */}
-      <div className="mx-auto max-w-5xl bg-white/80 backdrop-blur-md rounded-b-2xl border border-zinc-200 overflow-hidden shadow-sm">
+      <div className="mx-auto max-w-5xl bg-white/80 backdrop-blur-md rounded-b-2xl border border-zinc-200 overflow-hidden">
         {/* Top Bar */}
         <div className="flex h-16 items-center justify-between px-6">
           <div />
