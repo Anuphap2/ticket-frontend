@@ -86,49 +86,13 @@ export function Navbar() {
               />
             </svg>
           </button>
-          <div className="flex items-center gap-4 text-right">
-            {isAuthenticated ? (
-              <>
-                {isAdmin && (
-                  <Link
-                    href="/admin"
-                    className="text-sm font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-                  >
-                    Admin Dashboard
-                  </Link>
-                )}
-                <span className="text-sm font-medium text-black">
-                  {user?.email}
-                </span>
-                <Link
-                  href="/my-bookings"
-                  className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
-                >
-                  My Bookings
-                </Link>
-                <button
-                  onClick={logout}
-                  className="text-sm font-medium text-red-600 hover:text-red-800 transition-colors"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/register"
-                  className="text-sm font-medium px-4 py-2 bg-black text-white rounded-full hover:bg-gray-800 transition-colors"
-                >
-                  Register
-                </Link>
-              </>
-            )}
+          <div className="w-16 text-right">
+            <Link
+              href="/login"
+              className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
+            >
+              Login
+            </Link>
           </div>
         </div>
 
@@ -201,5 +165,41 @@ export function Navbar() {
         </div>
       </div>
     </nav>
+  );
+}
+
+// Sub-component for Navigation to avoid mixing too much logic
+function AuthNav() {
+  const { user, logout, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return (
+      <Link
+        href="/login"
+        className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
+      >
+        Login
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-4">
+      {user?.role === "admin" && (
+        <Link
+          href="/admin"
+          className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors"
+        >
+          Admin
+        </Link>
+      )}
+      <span className="text-sm text-gray-600">Hi, {user?.email}</span>
+      <button
+        onClick={logout}
+        className="text-sm font-medium text-red-400 hover:text-red-600 transition-colors"
+      >
+        Logout
+      </button>
+    </div>
   );
 }
