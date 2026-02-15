@@ -28,8 +28,8 @@ export const bookingService = {
     },
 
     // 3. ดูประวัติการจองของตัวเอง
-    getMyBookings: async (): Promise<Booking[]> => {
-        const response = await api.get('/bookings/myBookings');
+    getMyBookings: async (page: number = 1, limit: number = 10): Promise<Booking[]> => {
+        const response = await api.get(`/bookings/myBookings?page=${page}&limit=${limit}`);
         return response.data;
     },
 

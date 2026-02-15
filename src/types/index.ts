@@ -46,6 +46,7 @@ export interface Booking {
     zoneName: string;
     quantity: number;
     status: 'pending' | 'confirmed' | 'cancelled';
+    seatNumbers?: string[];
     trackingId?: string;
     totalPrice: number; // Backend sends this
     event?: Event; // Some endpoints might populate this field instead of eventId
