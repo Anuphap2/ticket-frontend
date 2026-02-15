@@ -86,13 +86,8 @@ export function Navbar() {
               />
             </svg>
           </button>
-          <div className="w-16 text-right">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
-            >
-              Login
-            </Link>
+          <div className="w-auto text-right">
+            <AuthNav />
           </div>
         </div>
 
@@ -194,9 +189,15 @@ function AuthNav() {
         </Link>
       )}
       <span className="text-sm text-gray-600">Hi, {user?.email}</span>
+      <Link
+        href="/my-bookings"
+        className="text-sm font-medium text-zinc-600 hover:text-amber-600 transition-colors"
+      >
+        My Bookings
+      </Link>
       <button
         onClick={logout}
-        className="text-sm font-medium text-red-400 hover:text-red-600 transition-colors"
+        className="text-sm font-medium text-red-500 hover:text-red-700 transition-colors"
       >
         Logout
       </button>

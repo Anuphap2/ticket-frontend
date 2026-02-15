@@ -7,6 +7,9 @@ import { format } from 'date-fns';
 import { useEvents } from '@/hooks/useEvents';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter, Button } from '@/components/ui';
 import { Calendar, MapPin, Ticket } from 'lucide-react';
+import { Navbar } from '@/components/navbar';
+import { HeroSection } from '@/components/HeroSection';
+import { EventCard } from '@/components/EventCard';
 
 export default function HomePage() {
   const { events, loading: isLoading, fetchEvents } = useEvents();
@@ -64,29 +67,6 @@ export default function HomePage() {
   );
 }
 
-// Sub-component for Navigation to avoid mixing too much logic
-import { useAuth } from '@/context/AuthContext';
-import { Navbar } from '@/components/navbar';
-function AuthNav() {
-  const { user, logout, isAuthenticated } = useAuth();
-  if (!isAuthenticated) {
-    return (
-      <Link href="/login" className="text-sm font-medium text-zinc-600 hover:text-indigo-600">
-        Login
-      </Link>
-    )
-  }
-  return (
-    <div className="flex items-center gap-4">
-      {user?.role === 'admin' && (
-        <Link href="/admin" className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-          Admin Dashboard
-        </Link>
-      )}
-      <span className="text-sm text-zinc-500">Hi, {user?.email}</span>
-      <button onClick={logout} className="text-sm font-medium text-red-600 hover:text-red-500">
-        Logout
-      </button>
-    </div>
-  )
-}
+
+// Removed bottom imports
+
