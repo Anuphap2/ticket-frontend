@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import gsap from "gsap";
+import { useAuth } from "@/context/AuthContext";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -84,13 +85,8 @@ export function Navbar() {
               />
             </svg>
           </button>
-          <div className="w-16 text-right">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
-            >
-              Login
-            </Link>
+          <div className="text-right">
+            <AuthNav />
           </div>
         </div>
 
@@ -163,5 +159,41 @@ export function Navbar() {
         </div>
       </div>
     </nav>
+  );
+}
+
+// Sub-component for Navigation to avoid mixing too much logic
+function AuthNav() {
+  const { user, logout, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated) {
+    return (
+      <Link
+        href="/login"
+        className="text-sm font-medium text-black hover:text-amber-600 transition-colors"
+      >
+        Login
+      </Link>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-4">
+      {user?.role === "admin" && (
+        <Link
+          href="/admin"
+          className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors"
+        >
+          Admin
+        </Link>
+      )}
+      <span className="text-sm text-gray-600">Hi, {user?.email}</span>
+      <button
+        onClick={logout}
+        className="text-sm font-medium text-red-400 hover:text-red-600 transition-colors"
+      >
+        Logout
+      </button>
+    </div>
   );
 }
