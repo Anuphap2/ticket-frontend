@@ -20,7 +20,7 @@ import {
 } from "@/components/ui";
 import { Calendar, MapPin, Ticket } from "lucide-react";
 import { SeatMap } from "@/components/SeatMap";
-import { Navbar } from "@/components/navbar";
+import { Navbar } from "@/components/Navbar";
 
 export default function EventDetailsPage() {
   const { id } = useParams();
