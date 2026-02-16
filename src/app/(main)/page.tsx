@@ -4,11 +4,11 @@ import React, { useEffect, useMemo } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
-
 import { useEvents } from "@/hooks/useEvents";
 import { HeroSection } from "@/components/HeroSection";
 import { EventCard } from "@/components/EventCard";
 
+// ลงทะเบียน Plugin สำหรับ Client Side
 if (typeof window !== "undefined") {
   gsap.registerPlugin(useGSAP, ScrollTrigger);
 }
@@ -25,22 +25,26 @@ export default function HomePage() {
     return events.filter((event) => new Date(event.date) >= now);
   }, [events]);
 
-  useGSAP(() => {
-    if (isLoading) return;
+  useGSAP(
+    () => {
+      if (isLoading) return;
 
-    // แอนิเมชันเฉพาะหน้านี้
-    gsap.from("#upcoming-events", {
-      opacity: 0,
-      y: 100,
-      duration: 1,
-      ease: "power3.out",
-      scrollTrigger: {
-        trigger: "#upcoming-events",
-        start: "top 80%",
-      },
-    });
-  }, { dependencies: [isLoading] });
+      // แอนิเมชันเฉพาะหน้าแรก
+      gsap.from("#upcoming-events", {
+        opacity: 0,
+        y: 100,
+        duration: 1,
+        ease: "power3.out",
+        scrollTrigger: {
+          trigger: "#upcoming-events",
+          start: "top 80%",
+        },
+      });
+    },
+    { dependencies: [isLoading] },
+  );
 
+  // แสดงหน้า Loading ระหว่างรอข้อมูล
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-950">
@@ -49,7 +53,7 @@ export default function HomePage() {
     );
   }
 
-  // ส่งคืนเฉพาะเนื้อหาหลัก โดยไม่ต้องจัดการ Wrapper ใดๆ แล้ว
+  // ส่งคืนเฉพาะเนื้อหาหลัก (ไม่มี Wrapper หรือ Layout มาครอบแล้ว)
   return (
     <>
       <HeroSection />
