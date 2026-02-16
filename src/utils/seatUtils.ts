@@ -16,3 +16,7 @@ export const generateSeats = (rows: number, seatsPerRow: number): Seat[] => {
     }
     return seats;
 };
+
+export const getRowLabel = (index: number) => {
+  return String.fromCharCode(65 + index); // 0 -> A, 1 -> B
+};
