@@ -3,7 +3,7 @@ import { Ticket } from 'lucide-react';
 
 export function HeroSection() {
     return (
-        <div className="relative overflow-hidden bg-zinc-900 py-24 sm:py-32">
+        <div className="relative overflow-hidden bg-zinc-900 py-44">
             {/* Background gradients */}
             <div
                 className="absolute inset-0 -z-10 bg-[radial-gradient(45rem_50rem_at_top,theme(colors.indigo.100),white)] opacity-20"
