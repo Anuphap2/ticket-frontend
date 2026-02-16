@@ -162,9 +162,30 @@ function AuthNav({ onLogoutAction }: { onLogoutAction: () => void }) {
         </Link>
         <Link
           href="/register"
-          className="text-sm font-medium px-4 py-2 bg-white/80 text-black shadow-sm-white/80 rounded-full hover:bg-white/80 hover:inset-shadow-sm hover:inset-shadow-black/50 hover:text-black duration-200 transition-all"
+          className="group relative flex items-center h-[2.8em] py-[0.35em] pl-[1.2em] pr-[3.3em] text-sm font-medium text-white tracking-[0.05em] bg-black rounded-[1em] shadow-[inset_0_0_1.6em_-0.6em_#3f3f46] overflow-hidden transition-all"
         >
-          Register
+          {/* ข้อความจะเปลี่ยนเป็นสีดำเมื่อพื้นหลังสีขาวขยายตัวมาทับ */}
+          <span className="relative z-10 transition-colors duration-300 group-hover:text-black">
+            Register
+          </span>
+
+          {/* ไอคอนและพื้นหลังสีขาวที่จะขยายตัว */}
+          <div className="absolute right-[0.3em] z-20 flex items-center justify-center w-[2.2em] h-[2.2em] bg-white rounded-[0.75em] shadow-[0.1em_0.1em_0.6em_0.2em_rgba(0,0,0,0.5)] transition-all duration-300 group-hover:w-[calc(100%-0.6em)] active:scale-95">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-[1.1em] text-black transition-transform duration-300 group-hover:translate-x-[0.1em]"
+            >
+              <path
+                d="M5 12H19M19 12L12 5M19 12L12 19"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
         </Link>
       </div>
     );
