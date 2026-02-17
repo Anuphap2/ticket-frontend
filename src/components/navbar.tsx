@@ -133,7 +133,14 @@ export function Navbar() {
                     <div className="border-r border-zinc-200 text-center text-zinc-500">
                       Ticket Info
                     </div>
-                    <div className="text-center text-zinc-500">User Info</div>
+                    <div className="text-center">
+                      <Link
+                        href="/profile"
+                        className="p-2 px-4 border rounded-full border-zinc-700 text-zinc-700 transition-all duration-500 ease-out hover:border-black hover:text-black hover:scale-105 hover:shadow-lg hover:bg-zinc-200 inline-block"
+                      >
+                        แก้ไขข้อมูล
+                      </Link>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-3 mt-8 col-start-2 items-center">
@@ -148,7 +155,6 @@ export function Navbar() {
                     </div>
                     {/* ปุ่ม Logout ย้ายมาอยู่มุมขวาล่างของ Panel */}
                     <div className="flex justify-end">
-                      <Link href="../">Home page</Link>
                       <button
                         onClick={handleLogoutClick}
                         className="text-red-500 font-medium transition-all border border-dashed border-transparent hover:border-red-400 justify-center p-2 px-4 rounded-full"
