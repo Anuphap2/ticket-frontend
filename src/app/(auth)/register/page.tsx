@@ -74,7 +74,59 @@ export default function RegisterPage() {
                                 })}
                             />
                         </div>
-                        <Button type="submit" className="w-full" isLoading={isLoading}>
+                        <div className="space-y-2">
+    <Input
+      label="First Name"
+      placeholder="ชื่อจริง"
+      error={errors.firstName?.message as string}
+      {...register('firstName', {
+        required: 'First name is required',
+      })}
+    />
+  </div>
+
+  <div className="space-y-2">
+    <Input
+      label="Last Name"
+      placeholder="นามสกุล"
+      error={errors.lastName?.message as string}
+      {...register('lastName', {
+        required: 'Last name is required',
+      })}
+    />
+  </div>
+
+  <div className="space-y-2">
+    <Input
+      label="Phone"
+      placeholder="0812345678"
+      error={errors.phone?.message as string}
+      {...register('phone', {
+        required: 'Phone is required',
+        pattern: {
+          value: /^0[0-9]{9}$/,
+          message: 'Phone must be 10 digits',
+        },
+      })}
+    />
+  </div>
+
+  <div className="space-y-2">
+    <Input
+      label="National ID"
+      type="password"
+      placeholder="เลขบัตรประชาชน 13 หลัก"
+      error={errors.nationalId?.message as string}
+      {...register('nationalId', {
+        required: 'National ID is required',
+        pattern: {
+          value: /^[0-9]{13}$/,
+          message: 'National ID must be 13 digits',
+        },
+      })}
+    />
+  </div>
+<Button type="submit" className="w-full" isLoading={isLoading}>
                             Register
                         </Button>
                     </form>
