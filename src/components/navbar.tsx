@@ -148,6 +148,7 @@ export function Navbar() {
                     </div>
                     {/* ปุ่ม Logout ย้ายมาอยู่มุมขวาล่างของ Panel */}
                     <div className="flex justify-end">
+                      <Link href="../">Home page</Link>
                       <button
                         onClick={handleLogoutClick}
                         className="text-red-500 font-medium transition-all border border-dashed border-transparent hover:border-red-400 justify-center p-2 px-4 rounded-full"

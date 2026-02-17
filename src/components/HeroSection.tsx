@@ -17,7 +17,7 @@ export function HeroSection() {
       </video>
 
       {/* 2. Blur & Dark Overlay (ฟิล์มกรองแสงและลดความคมชัด) */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10"></div>
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-xs z-10"></div>
 
       {/* 3. Content */}
       <div className="relative z-20 mx-auto max-w-7xl px-6 lg:px-8 w-full">
