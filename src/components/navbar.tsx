@@ -138,7 +138,7 @@ export function Navbar() {
                         href="/profile"
                         className="p-2 px-4 border rounded-full border-zinc-700 text-zinc-700 transition-all duration-500 ease-out hover:border-black hover:text-black hover:scale-105 hover:shadow-lg hover:bg-zinc-200 inline-block"
                       >
-                        แก้ไขข้อมูล
+                        View Profile
                       </Link>
                     </div>
                   </div>
