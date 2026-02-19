@@ -1,23 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/authService";
-import {
-  Button,
-  Input,
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "@/components/ui";
-import { Lock, Mail, Loader2, ArrowRight, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
+import { Button, Input, CardContent, CardFooter } from "@/components/ui";
+import gsap from "gsap";
+
+type LoginFormData = {
+  email: string;
+  password: string;
+};
 
 export default function LoginPage() {
   const searchParams = useSearchParams();
@@ -27,13 +23,12 @@ export default function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm();
+  } = useForm<LoginFormData>();
 
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const router = useRouter();
 
-  // 🎯 ดักจับกรณีโดนเตะออกจากระบบ (Interceptor)
   useEffect(() => {
     if (isExpired) {
       toast.error("Session expired. Please login again.", {
@@ -42,7 +37,7 @@ export default function LoginPage() {
     }
   }, [isExpired]);
 
-  const onSubmit = async (data: any) => {
+  const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
     const toastId = toast.loading("Authenticating...");
 
@@ -64,116 +59,155 @@ export default function LoginPage() {
     }
   };
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const formWrapperRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+      });
+
+      // Left panel slide in
+      tl.from(formWrapperRef.current, {
+        x: -80,
+        opacity: 0,
+        duration: 1,
+      });
+
+      // Right panel slide in
+      tl.from(
+        imageRef.current,
+        {
+          x: 80,
+          opacity: 0,
+          duration: 1,
+        },
+        "-=0.8",
+      );
+
+      // Stagger content
+      tl.from(
+        ".animate-item",
+        {
+          y: 30,
+          opacity: 0,
+          duration: 0.8,
+          stagger: 0.15,
+        },
+        "-=0.6",
+      );
+    }, containerRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#fafafa] p-6 antialiased">
-      {/* Background Decor */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-500/5 blur-[120px] rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full" />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-[440px] relative z-10"
-      >
-        <Card className="border-none shadow-[0_30px_100px_rgba(0,0,0,0.08)] rounded-[45px] overflow-hidden bg-white">
-          <div className="h-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600" />
-
-          <CardHeader className="pt-12 pb-8 px-10">
-            <div className="flex justify-center mb-6">
-              <div className="h-14 w-14 bg-zinc-900 rounded-2xl flex items-center justify-center rotate-3 shadow-lg">
-                <Sparkles className="text-indigo-400 h-8 w-8" />
-              </div>
-            </div>
-            <CardTitle className="text-4xl font-black text-center tracking-tighter italic uppercase text-zinc-900">
-              Sign In
-            </CardTitle>
-            <p className="text-center text-zinc-400 text-xs font-bold uppercase tracking-widest mt-2">
-              To your pookan account
-            </p>
-          </CardHeader>
-
-          <CardContent className="px-10 pb-10">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-4">
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 h-5 w-5" />
-                  <Input
-                    type="email"
-                    placeholder="Email address"
-                    className="h-14 pl-12 rounded-2xl border-zinc-100 bg-zinc-50/50 focus:bg-white transition-all font-medium"
-                    {...register("email", { required: "Email is required" })}
-                  />
-                  {errors.email && (
-                    <p className="text-[10px] font-bold text-rose-500 mt-1 ml-2 uppercase italic">
-                      {errors.email.message as string}
-                    </p>
-                  )}
-                </div>
-
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 h-5 w-5" />
-                  <Input
-                    type="password"
-                    placeholder="Password"
-                    className="h-14 pl-12 rounded-2xl border-zinc-100 bg-zinc-50/50 focus:bg-white transition-all font-medium"
-                    {...register("password", {
-                      required: "Password is required",
-                    })}
-                  />
-                  {errors.password && (
-                    <p className="text-[10px] font-bold text-rose-500 mt-1 ml-2 uppercase italic">
-                      {errors.password.message as string}
-                    </p>
-                  )}
-                </div>
+    <div
+      ref={containerRef}
+      className="flex h-screen w-screen items-center justify-center bg-gray-50 lg:p-8 overflow-hidden"
+    >
+      <div className="flex h-full w-full overflow-hidden rounded-2xl bg-white shadow-2xl">
+        {/* Left Side */}
+        <div className="flex w-full flex-col lg:w-2/5 overflow-hidden">
+          {/* Animated Wrapper (Prevents Scrollbar Bug) */}
+          <div
+            ref={formWrapperRef}
+            className="flex flex-col h-full overflow-y-hidden"
+          >
+            <CardContent className="grow p-8 lg:p-12">
+              <div className="mb-8 animate-item">
+                <h1 className="text-3xl font-extrabold text-gray-900">
+                  Welcome Back
+                </h1>
+                <p className="text-gray-500">
+                  Sign in to continue to your Pookan account.
+                </p>
               </div>
 
-              <div className="flex justify-end">
-                <button
-                  type="button"
-                  className="text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-indigo-600 transition-colors"
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                <section className="space-y-4 animate-item">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-600">
+                    Account Access
+                  </h3>
+
+                  <div className="grid grid-cols-1 gap-4">
+                    <Input
+                      label="Email Address"
+                      type="email"
+                      placeholder="name@company.com"
+                      error={errors.email?.message}
+                      {...register("email", {
+                        required: "Email is required",
+                      })}
+                    />
+
+                    <Input
+                      label="Password"
+                      type="password"
+                      placeholder="Enter your password"
+                      error={errors.password?.message}
+                      {...register("password", {
+                        required: "Password is required",
+                      })}
+                    />
+                  </div>
+                </section>
+
+                <div className="flex justify-end animate-item">
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="animate-item w-full py-6 text-base font-bold uppercase tracking-widest shadow-lg transition-transform active:scale-[0.98]"
                 >
-                  Forgot Password?
-                </button>
-              </div>
+                  {isLoading ? "Signing in..." : "Login Now"}
+                </Button>
+              </form>
+            </CardContent>
 
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="w-full h-16 rounded-[22px] bg-zinc-900 text-white font-black text-lg hover:bg-black transition-all shadow-xl active:scale-[0.98] group"
-              >
-                {isLoading ? (
-                  <Loader2 className="animate-spin h-6 w-6" />
-                ) : (
-                  <span className="flex items-center gap-2">
-                    LOGIN{" "}
-                    <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                )}
-              </Button>
-            </form>
-          </CardContent>
+            <CardFooter className="border-t bg-gray-50 p-6 text-center animate-item">
+              <p className="w-full text-sm text-gray-600">
+                Don&apos;t have an account?{" "}
+                <Link
+                  href="/register"
+                  className="font-bold text-blue-600 hover:text-blue-700 hover:underline"
+                >
+                  Create one here
+                </Link>
+              </p>
+            </CardFooter>
+          </div>
+        </div>
 
-          <CardFooter className="bg-zinc-50/80 border-t border-zinc-100 py-8 flex justify-center">
-            <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-              Don't have an account?{" "}
-              <Link
-                href="/register"
-                className="text-indigo-600 hover:text-indigo-800 transition-colors ml-1"
-              >
-                Register here
-              </Link>
+        {/* Right Side */}
+        <div ref={imageRef} className="relative hidden w-3/4 md:block">
+          <div
+            className="absolute inset-0 bg-[url('/login_page_picture.png')] bg-cover bg-center"
+            aria-hidden="true"
+          >
+            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
+          </div>
+
+          <div className="relative flex h-full flex-col justify-end p-12 text-white">
+            <h2 className="mb-4 text-5xl font-bold leading-tight animate-item">
+              Feel the Energy
+            </h2>
+            <p className="max-w-md text-xl font-light text-gray-200 animate-item">
+              Experience unforgettable live moments. Secure your tickets and be
+              part of something extraordinary.
             </p>
-          </CardFooter>
-        </Card>
-
-        {/* Branding footer */}
-        <p className="mt-8 text-center text-[10px] text-zinc-300 font-bold uppercase tracking-[0.3em]">
-          Powered by Pookan Dev &copy; 2026
-        </p>
-      </motion.div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

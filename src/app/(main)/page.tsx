@@ -51,7 +51,7 @@ export default function HomePage() {
         {
           opacity: 0,
           y: 60,
-          stagger: 0.15, // 🎯 ค่อยๆ เด้งขึ้นมาทีละใบ
+          stagger: 0.15, // ค่อยๆ เด้งขึ้นมาทีละใบ
           duration: 1,
           ease: "expo.out",
         },
@@ -89,7 +89,7 @@ export default function HomePage() {
             {[...Array(6)].map((_, i) => (
               <div
                 key={i}
-                className="h-[400px] rounded-[32px] bg-zinc-100 animate-pulse border border-zinc-200"
+                className="h-100 rounded-4xl bg-zinc-100 animate-pulse border border-zinc-200"
               />
             ))}
           </div>

@@ -32,7 +32,6 @@ interface QuickLinkProps {
 export function Navbar() {
   const { isAuthenticated, logout, user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [isFetching, setIsFetching] = useState(false);
 
@@ -91,13 +90,6 @@ export function Navbar() {
       }
     }
   };
-
-  // Scroll effect
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   // ── GSAP Animation (inspired by the second version – cleaner timeline) ──
   useEffect(() => {

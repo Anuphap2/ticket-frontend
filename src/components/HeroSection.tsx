@@ -23,7 +23,7 @@ export function HeroSection() {
       </video>
 
       {/* 2. Optimized Overlay */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent"></div>
+      <div className="absolute inset-0 z-10 bg-linear-to-r from-zinc-950 via-zinc-950/60 to-transparent"></div>
       <div className="absolute inset-0 z-10 bg-black/20 backdrop-blur-xs"></div>
 
       {/* 3. Content */}
@@ -33,11 +33,10 @@ export function HeroSection() {
             {isAuthenticated ? `Welcome Back, \n ${user?.name || 'Friend'}` : "Book Your \n Best Moment"}
           </h1>
           <p className="mt-6 text-lg leading-8 text-zinc-300 max-w-xl font-medium drop-shadow-md">
-            {isAuthenticated 
+            {isAuthenticated
               ? "Ready for your next experience? Check your reserved seats or discover new events happening right now."
               : "Secure your seats for the hottest concerts, theater shows, and events. Experience the thrill of live performance."}
           </p>
-          
           <div className="mt-10 flex flex-col sm:flex-row items-center gap-4 lg:justify-start justify-center">
             <Link href="#upcoming-events">
               <Button size="lg" className="rounded-full px-10 h-14 text-base font-bold bg-indigo-600 hover:bg-indigo-700 shadow-xl shadow-indigo-500/20">
