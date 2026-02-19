@@ -24,7 +24,7 @@ export function HeroSection() {
 
       {/* 2. Optimized Overlay */}
       <div className="absolute inset-0 z-10 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent"></div>
-      <div className="absolute inset-0 z-10 bg-black/20"></div>
+      <div className="absolute inset-0 z-10 bg-black/20 backdrop-blur-xs"></div>
 
       {/* 3. Content */}
       <div className="relative z-20 mx-auto max-w-7xl px-6 lg:px-8 w-full text-center lg:text-left">

@@ -84,7 +84,7 @@ export default function HomePage() {
 
         {/* Content Area */}
         {isLoading ? (
-          // 🦴 Skeleton Loading State
+          // Skeleton Loading State
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
               <div

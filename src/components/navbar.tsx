@@ -154,10 +154,11 @@ export function Navbar() {
     >
       <div
         className={`
-          mx-auto max-w-5xl 
-          bg-white/85 backdrop-blur-md 
-          rounded-b-3xl border border-zinc-200/60 shadow-md
+          mx-auto max-w-5xl
+          bg-white/85 backdrop-blur-md
+          rounded-b-0 border border-zinc-200/60 shadow-md
           overflow-hidden relative
+          lg:rounded-b-3xl
         `}
       >
         {/* Top bar – grid layout like the second version */}
@@ -169,7 +170,7 @@ export function Navbar() {
               className="text-xl font-black tracking-tight text-zinc-900 flex items-center gap-2"
             >
               <Ticket className="w-6 h-6 text-indigo-600" />
-              Ticket<span className="text-indigo-600">APP</span>
+              <div className="hidden md:flex">Ticket<span className="text-indigo-600">APP</span></div>
             </Link>
           </div>
 
