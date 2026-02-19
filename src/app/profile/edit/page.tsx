@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { authService } from "@/services/authService";
 import { User } from "@/types";
+import gsap from "gsap";
 import {
   ArrowLeft,
   Save,
@@ -11,8 +12,17 @@ import {
   Sparkles,
   User as UserIcon,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import toast from "react-hot-toast";
+
+// สร้าง Interface สำหรับ Component InputGroup เพื่อเลี่ยงการใช้ any
+interface InputGroupProps {
+  label: string;
+  name: string;
+  value: string | undefined;
+  onChange: React.Dispatch<React.SetStateAction<Partial<User>>>;
+  type?: string;
+  placeholder?: string;
+}
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -23,6 +33,9 @@ export default function EditProfilePage() {
     lastName: "",
     phone: "",
   });
+
+  // 1. สร้าง Ref สำหรับจับการ์ดฟอร์ม
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     authService
@@ -36,6 +49,17 @@ export default function EditProfilePage() {
       )
       .finally(() => setLoading(false));
   }, []);
+
+  // 2. ใช้ GSAP สร้างแอนิเมชันเมื่อโหลดข้อมูลเสร็จ
+  useEffect(() => {
+    if (!loading && cardRef.current) {
+      gsap.fromTo(
+        cardRef.current,
+        { opacity: 0, scale: 0.98 },
+        { opacity: 1, scale: 1, duration: 0.6, ease: "power3.out" },
+      );
+    }
+  }, [loading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,10 +95,10 @@ export default function EditProfilePage() {
           Back
         </button>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="bg-white rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.04)] border border-zinc-100 overflow-hidden"
+        {/* 3. ผูก Ref และใส่ opacity-0 ซ่อนไว้ก่อน */}
+        <div
+          ref={cardRef}
+          className="opacity-0 bg-white rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.04)] border border-zinc-100 overflow-hidden"
         >
           {/* Header Area */}
           <div className="bg-zinc-950 p-10 text-white relative overflow-hidden">
@@ -137,7 +161,7 @@ export default function EditProfilePage() {
               </button>
             </div>
           </form>
-        </motion.div>
+        </div>
 
         {/* Security Note */}
         <p className="mt-8 text-center text-[10px] text-zinc-300 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2">
@@ -148,7 +172,7 @@ export default function EditProfilePage() {
   );
 }
 
-// Reusable Component เพื่อความคลีน
+// Reusable Component เพื่อความคลีน (พร้อม Type ที่ถูกต้อง)
 function InputGroup({
   label,
   name,
@@ -156,7 +180,7 @@ function InputGroup({
   onChange,
   type = "text",
   placeholder = "",
-}: any) {
+}: InputGroupProps) {
   return (
     <div className="space-y-2">
       <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">
@@ -164,10 +188,10 @@ function InputGroup({
       </label>
       <input
         type={type}
-        value={value}
+        value={value || ""}
         placeholder={placeholder}
         onChange={(e) =>
-          onChange((prev: any) => ({ ...prev, [name]: e.target.value }))
+          onChange((prev) => ({ ...prev, [name]: e.target.value }))
         }
         className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl px-6 py-4 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-zinc-900"
       />
