@@ -67,24 +67,13 @@ export default function RegisterPage() {
         duration: 1,
       });
 
-      // Right panel
-      tl.from(
-        imageRef.current,
-        {
-          x: 80,
-          opacity: 0,
-          duration: 1,
-        },
-        "-=0.8",
-      );
-
       // Stagger inner content
       tl.from(
         ".animate-item",
         {
           y: 30,
           opacity: 0,
-          duration: 0.8,
+          duration: 0.5,
           stagger: 0.15,
         },
         "-=0.6",
