@@ -4,19 +4,38 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import gsap from "gsap";
 import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button"; // แก้เป็นพิมพ์เล็กถ้าไฟล์จริงชื่อ button.tsx
 import { bookingService } from "@/services/bookingService";
 import { Booking } from "@/types";
 import {
   Ticket,
   User,
-  LogOut,
-  X,
   CreditCard,
   Calendar,
   ArrowRight,
   LayoutDashboard,
+  X,
 } from "lucide-react";
+
+// สร้าง Interface สำหรับ Event ที่ถูก Populate ข้อมูลมาแล้ว
+interface PopulatedEvent {
+  _id: string;
+  title: string;
+  date: string;
+}
+
+interface QuickLinkProps {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}
+
+interface AuthNavProps {
+  user: { firstName?: string; role?: string } | null | undefined;
+  isAuthenticated: boolean;
+  logout: () => void;
+}
 
 export function Navbar() {
   const { isAuthenticated, logout, user } = useAuth();
@@ -27,28 +46,42 @@ export function Navbar() {
 
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // 🎯 1. กรองเฉพาะตั๋วที่ยังไม่จัดงานและยืนยันแล้ว
+  // 1. กรองเฉพาะตั๋วที่ยังไม่จัดงานและยืนยันแล้ว
   const activeBookings = useMemo(() => {
     const now = new Date().getTime();
     return allBookings.filter((b) => {
-      const eventTime = new Date((b.eventId as any)?.date).getTime();
+      // แปลงชนิดข้อมูลให้ TypeScript ทราบโครงสร้าง
+      const eventData = b.eventId as unknown as PopulatedEvent;
+      const eventTime = new Date(eventData?.date).getTime();
       return b.status === "confirmed" && eventTime > now;
     });
   }, [allBookings]);
 
-  // 🎯 2. ดึงข้อมูลเมื่อเปิดแผง
-  useEffect(() => {
-    if (isAuthenticated && isOpen && !isFetching && allBookings.length === 0) {
+  // 2. ดึงข้อมูลเมื่อผู้ใช้คลิกเปิดแผง (หลีกเลี่ยงการใช้ useEffect ดึงข้อมูล)
+  const handleTogglePanel = async () => {
+    const nextIsOpen = !isOpen;
+    setIsOpen(nextIsOpen);
+
+    if (
+      nextIsOpen &&
+      isAuthenticated &&
+      allBookings.length === 0 &&
+      !isFetching
+    ) {
       setIsFetching(true);
-      bookingService
-        .getMyBookings(1, 10)
-        .then((res: any) => {
-          const data = Array.isArray(res) ? res : res.data;
-          setAllBookings(data || []);
-        })
-        .finally(() => setIsFetching(false));
+      try {
+        const res = await bookingService.getMyBookings(1, 10);
+        // กำหนด Type ป้องกันข้อผิดพลาดของ Array
+        const resData = res as { data?: Booking[] } | Booking[];
+        const data = Array.isArray(resData) ? resData : resData.data;
+        setAllBookings(data || []);
+      } catch (error) {
+        console.error("Failed to fetch bookings:", error);
+      } finally {
+        setIsFetching(false);
+      }
     }
-  }, [isAuthenticated, isOpen]);
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -56,38 +89,76 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // 🎯 3. GSAP Optimized Animation
+  // 3. GSAP Optimized Animation
   useEffect(() => {
     if (!panelRef.current) return;
+
+    // Optional: kill previous tweens to prevent overlap/queue buildup
+    gsap.killTweensOf(panelRef.current);
+
     if (isOpen) {
-      gsap.to(panelRef.current, {
+      // Make sure it's visible before measuring
+      gsap.set(panelRef.current, {
         display: "block",
-        height: "auto",
+        height: "auto", // let browser calculate natural height
+        maxHeight: 0, // start point
+        overflow: "hidden",
+      });
+
+      // Measure natural height
+      const naturalHeight = panelRef.current.scrollHeight;
+
+      gsap.to(panelRef.current, {
+        maxHeight: naturalHeight, // or use "1200px" / "80vh" if you prefer fixed value
         opacity: 1,
         y: 0,
-        duration: 0.3,
+        duration: 0.4,
         ease: "power2.out",
-        force3D: true,
+        autoRound: false, // ← important for smoothness
+        overflow: "hidden", // keep during anim
+        onComplete: () => {
+          // After animation → allow content to expand naturally
+          gsap.set(panelRef.current, {
+            maxHeight: "none",
+            height: "auto",
+            overflow: "visible",
+          });
+        },
       });
     } else {
       gsap.to(panelRef.current, {
-        height: 0,
+        maxHeight: 0,
         opacity: 0,
-        y: -10,
-        duration: 0.2,
+        y: -8,
+        duration: 0.32,
         ease: "power2.in",
-        onComplete: () => gsap.set(panelRef.current, { display: "none" }),
+        autoRound: false,
+        overflow: "hidden",
+        onComplete: () => {
+          gsap.set(panelRef.current, {
+            display: "none",
+            maxHeight: 0,
+            y: 0,
+          });
+        },
       });
     }
+
+    // Optional cleanup
+    return () => {
+      gsap.killTweensOf(panelRef.current);
+    };
   }, [isOpen]);
 
   const isAdmin = user?.role === "admin";
 
   return (
     <nav
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? "py-2" : "py-4"}`}
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${
+        scrolled ? "py-2" : "py-4"
+      }`}
     >
-      <div className="mx-auto max-w-5xl bg-white/95 backdrop-blur-md rounded-[2rem] border border-zinc-200/50 shadow-2xl relative overflow-hidden will-change-transform">
+      <div className="mx-auto max-w-5xl bg-white/95 backdrop-blur-md rounded-4xl border border-zinc-200/50 shadow-2xl relative overflow-hidden will-change-transform">
         <div className="flex items-center justify-between px-8 h-16">
           <Link
             href="/"
@@ -100,7 +171,7 @@ export function Navbar() {
           <div className="absolute left-1/2 -translate-x-1/2">
             {isAuthenticated && (
               <button
-                onClick={() => setIsOpen(!isOpen)}
+                onClick={handleTogglePanel}
                 className="group flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-indigo-600 transition-all px-4 py-2"
               >
                 Upcoming Events{" "}
@@ -122,7 +193,7 @@ export function Navbar() {
         {isAuthenticated && (
           <div
             ref={panelRef}
-            className="hidden opacity-0 h-0 overflow-hidden bg-zinc-50/50 border-t border-zinc-100"
+            className="hidden opacity-0 max-h-0 overflow-hidden bg-zinc-50/50 border-t border-zinc-100 will-change-transform"
           >
             <div className="p-8 max-w-2xl mx-auto">
               <div className="flex items-center justify-between mb-6 px-2">
@@ -131,7 +202,7 @@ export function Navbar() {
                 </h3>
               </div>
 
-              <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 no-scrollbar">
+              <div className="space-y-3 max-h-64 overflow-y-auto pr-2 no-scrollbar">
                 {activeBookings.length > 0 ? (
                   activeBookings.map((booking) => (
                     <Link
@@ -146,7 +217,10 @@ export function Navbar() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black text-zinc-900 leading-none truncate w-40 md:w-64 italic">
-                            {(booking.eventId as any).title}
+                            {
+                              (booking.eventId as unknown as PopulatedEvent)
+                                .title
+                            }
                           </p>
                           <p className="text-[9px] font-bold text-zinc-400 mt-1 uppercase tracking-widest">
                             Zone {booking.zoneName} • {booking.quantity} Seats
@@ -161,12 +235,11 @@ export function Navbar() {
                   ))
                 ) : (
                   <div className="py-8 text-center text-zinc-300 italic text-[10px] uppercase font-bold tracking-widest bg-white rounded-3xl border border-dashed border-zinc-200">
-                    No active tickets
+                    {isFetching ? "Loading..." : "No active tickets"}
                   </div>
                 )}
               </div>
 
-              {/* 🛠️ ปรับสัดส่วน Grid ตาม Role */}
               <div
                 className={`grid ${isAdmin ? "grid-cols-3" : "grid-cols-2"} gap-3 mt-6`}
               >
@@ -210,7 +283,7 @@ export function Navbar() {
   );
 }
 
-function QuickLink({ href, icon, label, onClick }: any) {
+function QuickLink({ href, icon, label, onClick }: QuickLinkProps) {
   return (
     <Link
       href={href}
@@ -227,7 +300,7 @@ function QuickLink({ href, icon, label, onClick }: any) {
   );
 }
 
-function AuthNav({ user, isAuthenticated, logout }: any) {
+function AuthNav({ user, isAuthenticated, logout }: AuthNavProps) {
   if (!isAuthenticated)
     return (
       <div className="flex items-center gap-4">
@@ -244,6 +317,7 @@ function AuthNav({ user, isAuthenticated, logout }: any) {
         </Link>
       </div>
     );
+
   return (
     <div className="flex items-center gap-4 pl-4 border-l border-zinc-100">
       <div className="text-right hidden sm:block leading-tight">
