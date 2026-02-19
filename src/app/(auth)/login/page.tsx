@@ -122,7 +122,7 @@ export default function LoginPage() {
                   Welcome Back
                 </h1>
                 <p className="text-gray-500">
-                  Sign in to continue to your Pookan account.
+                  Sign in to continue to your account.
                 </p>
               </div>
 
