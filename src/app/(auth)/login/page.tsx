@@ -158,7 +158,7 @@ export default function LoginPage() {
                   disabled={isLoading}
                   className="animate-item w-full py-6 text-base font-bold uppercase tracking-widest shadow-lg transition-transform active:scale-[0.98]"
                 >
-                  {isLoading ? "Signing in..." : "Login Now"}
+                  {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </CardContent>
