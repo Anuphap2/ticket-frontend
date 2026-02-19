@@ -1,124 +1,187 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import api from '@/lib/axios';
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { authService } from "@/services/authService";
+import { User } from "@/types";
+import {
+  ArrowLeft,
+  Save,
+  Loader2,
+  Sparkles,
+  User as UserIcon,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import toast from "react-hot-toast";
 
 export default function EditProfilePage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    phone: '',
+  const [form, setForm] = useState<Partial<User>>({
+    firstName: "",
+    lastName: "",
+    phone: "",
   });
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await api.get('auth/profile');
-        const user = res.data;
-
+    authService
+      .getProfile()
+      .then((user) =>
         setForm({
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
-          phone: user.phone || '',
-        });
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
+          firstName: user.firstName,
+          lastName: user.lastName,
+          phone: user.phone,
+        }),
+      )
+      .finally(() => setLoading(false));
   }, []);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    const toastId = toast.loading("Saving changes...");
+
     try {
-      await api.patch('auth/profile', form);
-      router.push('/profile');
+      await authService.updateProfile(form);
+      toast.success("Profile updated successfully!", { id: toastId });
+      router.push("/profile");
+      router.refresh();
     } catch (err) {
-      console.error(err);
-      alert('แก้ไขข้อมูลไม่สำเร็จ');
+      toast.error("Failed to update profile", { id: toastId });
     } finally {
       setSaving(false);
     }
   };
 
-  if (loading)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-zinc-50 text-zinc-600">
-        กำลังโหลดข้อมูล...
-      </div>
-    );
+  if (loading) return <LoadingSpinner />;
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-6 space-y-6">
-        <h1 className="text-2xl font-bold text-zinc-800 text-center">
-          แก้ไขข้อมูลส่วนตัว
-        </h1>
+    <div className="min-h-screen bg-[#fafafa] py-16 px-6 antialiased">
+      <div className="max-w-xl mx-auto">
+        {/* Top Navigation */}
+        <button
+          onClick={() => router.back()}
+          className="group inline-flex items-center text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 hover:text-indigo-600 mb-8 transition-colors"
+        >
+          <ArrowLeft
+            size={14}
+            className="mr-2 group-hover:-translate-x-1 transition-transform"
+          />
+          Back
+        </button>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              ชื่อจริง
-            </label>
-            <input
-              name="firstName"
-              value={form.firstName}
-              onChange={handleChange}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="bg-white rounded-[3rem] shadow-[0_30px_100px_rgba(0,0,0,0.04)] border border-zinc-100 overflow-hidden"
+        >
+          {/* Header Area */}
+          <div className="bg-zinc-950 p-10 text-white relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl rounded-full" />
+            <div className="relative z-10 flex items-center gap-4">
+              <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10">
+                <UserIcon size={24} className="text-indigo-400" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-black italic uppercase tracking-tighter">
+                  Edit Identity
+                </h1>
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1">
+                  Keep your information up to date
+                </p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              นามสกุล
-            </label>
-            <input
-              name="lastName"
-              value={form.lastName}
-              onChange={handleChange}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="p-10 md:p-12 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <InputGroup
+                label="First Name"
+                name="firstName"
+                value={form.firstName}
+                onChange={setForm}
+              />
+              <InputGroup
+                label="Last Name"
+                name="lastName"
+                value={form.lastName}
+                onChange={setForm}
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 mb-1">
-              เบอร์โทรศัพท์
-            </label>
-            <input
+            <InputGroup
+              label="Phone Number"
               name="phone"
               value={form.phone}
-              onChange={handleChange}
-              className="w-full border border-zinc-300 rounded-lg px-3 py-2
-                         focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              onChange={setForm}
+              type="tel"
+              placeholder="08X-XXX-XXXX"
             />
-          </div>
 
-          <button
-            type="submit"
-            disabled={saving}
-            className="w-full bg-indigo-600 text-white py-2.5 rounded-xl
-                       font-medium transition-all duration-300
-                       hover:bg-indigo-700 hover:shadow-lg
-                       disabled:opacity-50"
-          >
-            {saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูล'}
-          </button>
-        </form>
+            <div className="pt-4">
+              <button
+                disabled={saving}
+                className="w-full h-16 bg-zinc-900 text-white rounded-[22px] font-black text-xs uppercase tracking-[0.2em] hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 flex justify-center items-center gap-3 shadow-xl shadow-zinc-200"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    Synchronizing...
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} /> Confirm Changes
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </motion.div>
+
+        {/* Security Note */}
+        <p className="mt-8 text-center text-[10px] text-zinc-300 font-bold uppercase tracking-[0.3em] flex items-center justify-center gap-2">
+          <Sparkles size={12} /> Secure Profile Management
+        </p>
       </div>
+    </div>
+  );
+}
+
+// Reusable Component เพื่อความคลีน
+function InputGroup({
+  label,
+  name,
+  value,
+  onChange,
+  type = "text",
+  placeholder = "",
+}: any) {
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) =>
+          onChange((prev: any) => ({ ...prev, [name]: e.target.value }))
+        }
+        className="w-full bg-zinc-50 border border-zinc-100 rounded-2xl px-6 py-4 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all font-medium text-zinc-900"
+      />
+    </div>
+  );
+}
+
+function LoadingSpinner() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#fafafa] gap-4">
+      <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400 italic">
+        ACCESSING IDENTITY VAULT...
+      </p>
     </div>
   );
 }

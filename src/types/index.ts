@@ -51,4 +51,6 @@ export interface Booking {
     totalPrice: number; // Backend sends this
     event?: Event; // Some endpoints might populate this field instead of eventId
     createdAt: string;
+    expiresAt: string;
+    updatedAt: string;
 }

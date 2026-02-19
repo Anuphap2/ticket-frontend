@@ -18,7 +18,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-zinc-950`}>
+      <body className={`${inter.className} bg-zinc-50 text-zinc-900`}>
         <AuthProvider>
           <Toaster position="top-right" />
 

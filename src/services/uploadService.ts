@@ -24,6 +24,7 @@ export const uploadService = {
             const response = await axios.post(url, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
                 },
             });
 
@@ -38,7 +39,15 @@ export const uploadService = {
             return responseData.url || '';
         } catch (error: any) {
             if (error.response) {
-                console.error('Upload Error Details:', error.response.data);
+                // ลอง log แบบนี้แทนจะเห็นสถานะและ Header ทั้งหมด
+                console.error('Status:', error.response.status);
+                console.error('Data:', error.response.data);
+                console.dir(error.response); // ดูโครงสร้าง Object แบบละเอียด
+            } else if (error.request) {
+                // กรณี Request ส่งออกไปได้แต่ไม่มีการตอบกลับ (มักจะเป็น CORS)
+                console.error('No response received (CORS or Network issue)');
+            } else {
+                console.error('Error Setting up Request:', error.message);
             }
             throw error;
         }

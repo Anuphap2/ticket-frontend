@@ -7,6 +7,17 @@ const api = axios.create({
   },
 });
 
+// ฟังก์ชันสำหรับเตะออกเมื่อ Token มีปัญหาจริงๆ
+const handleLogout = (reason = "expired") => {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+    window.location.href = `/login?reason=${reason}`;
+  }
+};
+
+// --- Request Interceptor ---
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
@@ -20,11 +31,12 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+// --- Response Interceptor ---
 api.interceptors.response.use(
   (response) => {
-    // 🎯 แกะให้ถึงก้อนเนื้อข้อมูล (data.data) หรือก้อนหลัก (data)
-    if (response.data && response.data.success) {
-      // คืนค่าก้อนเนื้อข้อมูลออกไปเลย เพื่อให้ service รับไปใช้ง่ายๆ
+    // 🎯 แก้ปัญหาข้อมูลซ้อนชั้น: คืนค่าก้อน data จริงๆ ออกไปให้ Service ใช้งานง่ายขึ้น
+    // ถ้า Backend ของพู่กันใช้ TransformInterceptor { success, data }
+    if (response.data && response.data.success === true) {
       return response.data;
     }
     return response;
@@ -32,37 +44,56 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
+    // 🎯 เช็ค 401 Unauthorized และต้องยังไม่ได้ลอง Retry
     if (error.response?.status === 401 && !originalRequest._retry) {
+      console.warn("Unauthorized! Attempting to refresh token...");
       originalRequest._retry = true;
 
+      const refreshToken = localStorage.getItem('refreshToken');
+
+      if (!refreshToken) {
+        console.error("No refresh token found. Redirecting to login.");
+        handleLogout("no_refresh_token");
+        return Promise.reject(error);
+      }
+
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (refreshToken) {
-          // 🎯 ยิงไปที่ endpoint refresh ของเรา (อิงตาม Backend ที่เราทำ)
-          const res = await axios.post(`${api.defaults.baseURL}/auth/refresh`, {}, {
-            headers: { Authorization: `Bearer ${refreshToken}` }
-          });
+        // 🎯 ยิงไปขอ Token ใหม่
+        // พยายามดึง baseURL ตรงๆ กันพลาด
+        const refreshUrl = `${api.defaults.baseURL}/auth/refresh`;
 
-          // 🎯 แกะ data จากก้อนที่ refresh ได้มา
-          const { access_token, refresh_token: new_refresh } = res.data.data;
+        const res = await axios.post(refreshUrl, {}, {
+          headers: { Authorization: `Bearer ${refreshToken}` }
+        });
 
-          localStorage.setItem('accessToken', access_token);
-          localStorage.setItem('refreshToken', new_refresh);
+        // 🎯 ดึง Token ออกมา (รองรับทั้ง snake_case และ camelCase)
+        const responseData = res.data.data || res.data;
+        const newAccessToken = responseData.access_token || responseData.accessToken;
+        const newRefreshToken = responseData.refresh_token || responseData.refreshToken;
 
-          originalRequest.headers.Authorization = `Bearer ${access_token}`;
-          return api(originalRequest);
+        if (!newAccessToken) throw new Error("Failed to extract new access token");
+
+        // อัปเดตลงเครื่อง
+        localStorage.setItem('accessToken', newAccessToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
         }
+
+        console.log("Token refreshed successfully. Retrying original request.");
+
+        // 🎯 ยิง Request เดิมซ้ำอีกครั้งด้วย Token ใหม่
+        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+        return api(originalRequest);
+
       } catch (refreshError) {
-        if (typeof window !== 'undefined') {
-          localStorage.clear(); // ล้างให้หมดแล้วไปล็อกอินใหม่
-          window.location.href = '/login';
-        }
+        console.error("Refresh token expired or invalid:", refreshError);
+        handleLogout("session_expired");
+        return Promise.reject(refreshError);
       }
     }
+
     return Promise.reject(error);
   }
-  
-  
 );
 
 export default api;

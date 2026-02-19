@@ -1,11 +1,14 @@
-'use client';
-import { useEffect, useState } from 'react';
-import api from '@/lib/axios';
-import { Pencil, Trash2, Plus, ArrowLeft } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+"use client";
+
+import { useEffect, useState } from "react";
+import api from "@/lib/axios";
+import { Pencil, Trash2, Plus, ArrowLeft, Loader2, Music } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { toast } from "react-hot-toast"; // แนะนำให้ใช้ toast เพื่อความสวยงาม
 
 export default function ManageEventsPage() {
   const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -13,83 +16,162 @@ export default function ManageEventsPage() {
   }, []);
 
   const fetchEvents = async () => {
+    setLoading(true);
     try {
-      const res = await api.get('/events');
+      const res = await api.get("/events");
       setEvents(res.data);
     } catch (err) {
-      console.error("Fetch failed");
+      toast.error("ดึงข้อมูลไม่สำเร็จ");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("พู่กันแน่ใจนะว่าจะลบงานนี้? ข้อมูลการจองจะหายหมดเลยนะ!")) {
-      try {
-        await api.delete(`/events/${id}`);
-        // ลบเสร็จแล้วกรองตัวที่ลบออกเพื่อ update UI ทันที
-        setEvents(events.filter((e: any) => e._id !== id));
-      } catch (err) {
-        alert("ลบไม่สำเร็จ!");
-      }
+    // ใช้ confirm ที่ดูจริงจังขึ้นนิดนึง
+    if (
+      !window.confirm(
+        "พู่กันแน่ใจนะว่าจะลบงานนี้? ข้อมูลการจองจะหายหมดและกู้คืนไม่ได้เลยนะ!",
+      )
+    )
+      return;
+
+    try {
+      await api.delete(`/events/${id}`);
+      setEvents((prev) => prev.filter((e: any) => e._id !== id));
+      toast.success("ลบกิจกรรมเรียบร้อยแล้ว");
+    } catch (err) {
+      toast.error("ลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-8">
-      <div className="flex justify-between items-center mb-8">
-        <button onClick={() => router.push('/admin')} className="flex items-center gap-2 text-slate-500 hover:text-slate-800">
-          <ArrowLeft size={20} /> กลับไปหน้า Dashboard
-        </button>
-        <button 
-          onClick={() => router.push('/admin/events/create')}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-indigo-700 transition"
+    <div className="max-w-6xl mx-auto p-8 min-h-screen bg-slate-50/30">
+      {/* Header Navigation */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+        <div>
+          <button
+            onClick={() => router.push("/admin")}
+            className="group flex items-center gap-2 text-slate-500 hover:text-indigo-600 transition-colors mb-2"
+          >
+            <ArrowLeft
+              size={18}
+              className="group-hover:-translate-x-1 transition-transform"
+            />
+            <span className="text-sm font-medium">Back to Dashboard</span>
+          </button>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            จัดการคอนเสิร์ต
+          </h1>
+        </div>
+
+        <button
+          onClick={() => router.push("/admin/events/create")}
+          className="bg-indigo-600 text-white px-6 py-3 rounded-2xl flex items-center gap-2 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-200 transition-all active:scale-95"
         >
-          <Plus size={20} /> เพิ่มคอนเสิร์ตใหม่
+          <Plus size={20} />
+          <span className="font-semibold">เพิ่มคอนเสิร์ตใหม่</span>
         </button>
       </div>
 
-      <h1 className="text-3xl font-bold mb-6 text-slate-800">จัดการคอนเสิร์ต</h1>
-
-      <div className="bg-white rounded-3xl shadow-sm border overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-slate-50 border-b text-slate-500 uppercase text-sm">
-            <tr>
-              <th className="px-6 py-4 font-semibold">ชื่อคอนเสิร์ต</th>
-              <th className="px-6 py-4 font-semibold">สถานที่</th>
-              <th className="px-6 py-4 font-semibold">วันที่</th>
-              <th className="px-6 py-4 font-semibold">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {events.map((event: any) => (
-              <tr key={event._id} className="hover:bg-slate-50 transition">
-                <td className="px-6 py-4 font-bold text-slate-700">{event.title}</td>
-                <td className="px-6 py-4 text-slate-600">{event.location}</td>
-                <td className="px-6 py-4 text-slate-600">
-                  {new Date(event.date).toLocaleDateString('th-TH')}
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex gap-3">
-                    <button 
-                      onClick={() => router.push(`/admin/events/edit/${event._id}`)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                    >
-                      <Pencil size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(event._id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
+      {/* Main Content Table */}
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50/50 border-b border-slate-100">
+                <th className="px-8 py-5 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  ชื่องาน
+                </th>
+                <th className="px-8 py-5 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  สถานที่
+                </th>
+                <th className="px-8 py-5 text-xs font-bold uppercase tracking-wider text-slate-400">
+                  วันที่จัดงาน
+                </th>
+                <th className="px-8 py-5 text-xs font-bold uppercase tracking-wider text-slate-400 text-center">
+                  จัดการ
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        {events.length === 0 && (
-          <div className="text-center py-10 text-slate-400">ยังไม่มีข้อมูลคอนเสิร์ต</div>
-        )}
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="py-20">
+                    <div className="flex flex-col items-center justify-center text-slate-400 gap-3">
+                      <Loader2 className="animate-spin" size={32} />
+                      <p className="text-sm font-medium">
+                        กำลังโหลดข้อมูลคอนเสิร์ต...
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : events.length > 0 ? (
+                events.map((event: any) => (
+                  <tr
+                    key={event._id}
+                    className="hover:bg-slate-50/80 transition-colors group"
+                  >
+                    <td className="px-8 py-5">
+                      <div className="font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                        {event.title}
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-slate-500 text-sm">
+                      <div className="flex items-center gap-1">
+                        {event.location}
+                      </div>
+                    </td>
+                    <td className="px-8 py-5 text-slate-500 text-sm">
+                      {new Date(event.date).toLocaleDateString("th-TH", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                    </td>
+                    <td className="px-8 py-5">
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() =>
+                            router.push(`/admin/events/edit/${event._id}`)
+                          }
+                          className="p-2.5 text-blue-500 hover:bg-blue-50 rounded-xl transition-all hover:scale-110"
+                          title="แก้ไข"
+                        >
+                          <Pencil size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(event._id)}
+                          className="p-2.5 text-rose-500 hover:bg-rose-50 rounded-xl transition-all hover:scale-110"
+                          title="ลบ"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={4} className="py-20 text-center">
+                    <div className="flex flex-col items-center justify-center text-slate-300 gap-2">
+                      <Music size={48} strokeWidth={1} />
+                      <p className="text-lg font-medium">
+                        ยังไม่มีข้อมูลคอนเสิร์ตในระบบ
+                      </p>
+                      <button
+                        onClick={() => router.push("/admin/events/create")}
+                        className="text-indigo-500 hover:underline text-sm font-semibold mt-2"
+                      >
+                        เริ่มสร้างกิจกรรมแรกของคุณ
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

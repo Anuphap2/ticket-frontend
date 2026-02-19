@@ -24,6 +24,11 @@ export const authService = {
         return response.data;
     },
 
+    updateProfile: async (data: Partial<User>): Promise<User> => {
+        const response = await api.patch('/auth/profile', data);
+        return response.data;
+    },
+
     logout: async () => {
         // API call if backend supports it, otherwise just client side
         try {
