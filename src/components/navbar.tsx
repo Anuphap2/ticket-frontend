@@ -338,8 +338,8 @@ function QuickLink({ href, icon, label, onClick }: QuickLinkProps) {
       href={href}
       onClick={onClick}
       className={`
-        flex flex-col items-center gap-3 p-5 rounded-2xl 
-        bg-white border border-zinc-200 hover:border-indigo-300 
+        flex flex-col items-center gap-3 p-5 rounded-2xl
+        bg-white border border-zinc-200 hover:border-indigo-300
         hover:shadow-sm transition-all group
       `}
     >

@@ -71,7 +71,6 @@ export default function LoginPage() {
 
       // Left panel slide in
       tl.from(formWrapperRef.current, {
-        x: -80,
         opacity: 0,
         duration: 1,
       });
@@ -80,7 +79,6 @@ export default function LoginPage() {
       tl.from(
         ".animate-item",
         {
-          y: 30,
           opacity: 0,
           duration: 0.5,
           stagger: 0.15,
@@ -97,7 +95,7 @@ export default function LoginPage() {
       ref={containerRef}
       className="flex h-screen w-screen items-center justify-center bg-gray-50 lg:p-8 overflow-hidden"
     >
-      <div className="flex h-full w-full overflow-hidden rounded-2xl bg-white shadow-2xl">
+      <div className="flex h-full w-full rounded-2xl bg-white shadow-2xl">
         {/* Left Side */}
         <div className="flex w-full flex-col lg:w-2/5 overflow-hidden">
           {/* Animated Wrapper (Prevents Scrollbar Bug) */}
@@ -163,14 +161,14 @@ export default function LoginPage() {
               </form>
             </CardContent>
 
-            <CardFooter className="border-t bg-gray-50 p-6 text-center animate-item">
+            <CardFooter className="p-6 text-center animate-item">
               <p className="w-full text-sm text-gray-600">
                 Don&apos;t have an account?{" "}
                 <Link
                   href="/register"
                   className="font-bold text-blue-600 hover:text-blue-700 hover:underline"
                 >
-                  Create one here
+                  Register here
                 </Link>
               </p>
             </CardFooter>

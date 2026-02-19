@@ -62,7 +62,6 @@ export default function RegisterPage() {
 
       // Left panel
       tl.from(formRef.current, {
-        x: -80,
         opacity: 0,
         duration: 1,
       });
@@ -71,7 +70,6 @@ export default function RegisterPage() {
       tl.from(
         ".animate-item",
         {
-          y: 30,
           opacity: 0,
           duration: 0.5,
           stagger: 0.15,
@@ -92,7 +90,7 @@ export default function RegisterPage() {
         {/* Left Side: Form */}
         <div
           ref={formRef}
-          className="flex w-full flex-col overflow-y-hidden lg:w-2/5"
+          className="flex w-full flex-col overflow-y-auto lg:w-2/5"
         >
           <CardContent className="grow p-8 lg:p-12">
             {/* Header */}
@@ -175,7 +173,7 @@ export default function RegisterPage() {
             </form>
           </CardContent>
 
-          <CardFooter className="border-t bg-gray-50 p-6 text-center animate-item">
+          <CardFooter className="p-6 text-center animate-item">
             <p className="w-full text-sm text-gray-600">
               Already a member?{" "}
               <Link
