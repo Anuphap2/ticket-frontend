@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -15,7 +15,8 @@ type LoginFormData = {
   password: string;
 };
 
-export default function LoginPage() {
+// 1. เปลี่ยนชื่อจาก LoginPage เป็น LoginContent และลบ export default ออก
+function LoginContent() {
   const searchParams = useSearchParams();
   const isExpired = searchParams.get("expired") === "true";
 
@@ -196,5 +197,20 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// 2. สร้าง LoginPage ตัวใหม่เพื่อครอบ Suspense
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-screen items-center justify-center bg-gray-50">
+          Loading...
+        </div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
   );
 }

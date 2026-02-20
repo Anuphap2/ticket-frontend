@@ -34,7 +34,6 @@ export default function EditProfilePage() {
     phone: "",
   });
 
-  // 1. สร้าง Ref สำหรับจับการ์ดฟอร์ม
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,7 +49,6 @@ export default function EditProfilePage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // 2. ใช้ GSAP สร้างแอนิเมชันเมื่อโหลดข้อมูลเสร็จ
   useEffect(() => {
     if (!loading && cardRef.current) {
       gsap.fromTo(
@@ -71,7 +69,7 @@ export default function EditProfilePage() {
       toast.success("Profile updated successfully!", { id: toastId });
       router.push("/profile");
       router.refresh();
-    } catch (err) {
+    } catch {
       toast.error("Failed to update profile", { id: toastId });
     } finally {
       setSaving(false);
