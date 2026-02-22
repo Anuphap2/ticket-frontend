@@ -148,9 +148,16 @@ export default function AdminDashboard() {
               <Ticket size={14} className="mr-2" /> Bookings
             </Button>
           </Link>
+
           <Link href="/admin/events/create">
             <Button className="rounded-2xl bg-zinc-900 hover:bg-black text-white font-black text-[10px] px-6 h-12 uppercase">
               <Plus size={14} className="mr-2" /> New Event
+            </Button>
+          </Link>
+
+          <Link href="/admin/users">
+            <Button className="rounded-2xl bg-zinc-900 hover:bg-black text-white font-black text-[10px] px-6 h-12 uppercase">
+              <Users size={14} className="mr-2" /> Users
             </Button>
           </Link>
         </div>
