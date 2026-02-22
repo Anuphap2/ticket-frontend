@@ -24,7 +24,7 @@ export default function HomePage() {
     const now = new Date();
     return events.filter((event) => {
       const isUpcoming = new Date(event.date) >= now;
-      const isSelling = event.status === "active"; // 🎯 ต้องเช็ค status ด้วย
+      const isSelling = event.status === "active"; // ต้องเช็ค status ด้วย
       return isUpcoming && isSelling;
     });
   }, [events]);

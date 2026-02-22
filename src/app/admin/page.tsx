@@ -24,13 +24,15 @@ import {
 } from "lucide-react";
 
 export default function AdminDashboard() {
+  // 🎯 แก้ไข: เอาคำว่า true ออกแล้ว เพื่อไม่ให้ Type Error ฟ้อง
   const {
     events = [],
     loading: eventsLoading,
     deleteEvent,
     updateEvent,
-  } = useEvents(true);
-  const { bookings = [], loading: bookingsLoading } = useBookings(true);
+  } = useEvents();
+
+  const { bookings = [], loading: bookingsLoading } = useBookings();
 
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [currentFilter, setCurrentFilter] = useState<
@@ -120,7 +122,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8 p-8 bg-zinc-50/50 min-h-screen antialiased">
-      {/* Header & Stats Cards เหมือนเดิม */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-3">
@@ -355,13 +356,12 @@ export default function AdminDashboard() {
                         </td>
                       </tr>
 
-                      {/* 🎯 Zone Breakdown Section (Grows when expanded) */}
+                      {/* 🎯 Zone Breakdown Section */}
                       {isExpanded && (
                         <tr>
                           <td colSpan={5} className="bg-zinc-50/80 px-16 py-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                               {event.zones?.map((zone) => {
-                                // คำนวณรายได้แต่ละโซนจาก bookings
                                 const zoneSold = Array.isArray(bookings)
                                   ? bookings
                                       .filter(
@@ -422,7 +422,6 @@ export default function AdminDashboard() {
                                         </p>
                                       </div>
                                     </div>
-                                    {/* Small Progress Bar */}
                                     <div className="w-full bg-zinc-100 h-1 rounded-full overflow-hidden mt-1">
                                       <div
                                         className="h-full bg-indigo-500"
