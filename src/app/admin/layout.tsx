@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, CalendarPlus, LogOut, Ticket } from "lucide-react";
+import { LayoutDashboard, CalendarPlus, LogOut, Ticket, Users } from "lucide-react";
 import { Button } from "@/components/ui";
 
 export default function AdminLayout({
@@ -40,6 +40,7 @@ export default function AdminLayout({
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/bookings", label: "Manage Bookings", icon: Ticket },
     { href: "/admin/events/create", label: "Create Event", icon: CalendarPlus },
+    { href: "/admin/users", label: "Manage Users", icon: Users },
   ];
 
   return (
