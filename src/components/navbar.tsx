@@ -180,7 +180,7 @@ export function Navbar() {
                   hover:border-zinc-400 pb-0.5
                 `}
               >
-                Upcoming Tickets
+                Check Tickets
                 <svg
                   className={`size-5 transition-transform ${isOpen ? "rotate-180" : ""}`}
                   fill="none"

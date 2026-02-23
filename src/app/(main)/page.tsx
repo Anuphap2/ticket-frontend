@@ -29,7 +29,7 @@ export default function HomePage() {
     });
   }, [events]);
 
-  // 🎇 GSAP Stagger Animation
+  // GSAP Stagger Animation
   useGSAP(
     () => {
       if (isLoading || activeEvents.length === 0) return;

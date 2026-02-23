@@ -303,242 +303,247 @@ export default function EditEventPage() {
     );
 
   return (
-    <div className="max-w-5xl mx-auto py-16 px-6 space-y-16 antialiased">
-      <header className="flex items-center justify-between">
-        <Link
-          href="/admin"
-          className="flex items-center text-zinc-500 hover:text-indigo-600 font-bold text-xs uppercase tracking-widest transition-all group"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />{" "}
-          Back
-        </Link>
-        <h1 className="text-4xl font-black text-zinc-900 tracking-tighter italic">
-          EDIT EVENT
-        </h1>
-      </header>
+    <div id="smooth-wrapper" className="min-h-screen">
+      <div
+        id="smooth-content"
+        className="max-w-5xl mx-auto py-16 px-6 space-y-16 antialiased"
+      >
+        <header className="flex items-center justify-between">
+          <Link
+            href="/admin"
+            className="flex items-center text-zinc-500 hover:text-indigo-600 font-bold text-xs uppercase tracking-widest transition-all group"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4 group-hover:-translate-x-1 transition-transform" />{" "}
+            Back
+          </Link>
+          <h1 className="text-4xl font-black text-zinc-900 tracking-tighter italic">
+            EDIT EVENT
+          </h1>
+        </header>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-16">
-        {/* Section 1: Info */}
-        <Card className="border-none shadow-2xl rounded-[50px] overflow-hidden bg-white">
-          <div className="h-4 bg-indigo-600 w-full" />
-          <CardContent className="p-12 space-y-12">
-            <div className="relative group cursor-pointer h-96 rounded-[40px] border-2 border-dashed border-zinc-100 bg-zinc-50 overflow-hidden flex items-center justify-center transition-all hover:bg-zinc-100">
-              {imageUrlPreview ? (
-                <img
-                  src={imageUrlPreview}
-                  className="w-full h-full object-cover"
-                  alt="Banner"
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-16">
+          {/* Section 1: Info */}
+          <Card className="border-none shadow-2xl rounded-[50px] overflow-hidden bg-white">
+            <div className="h-4 bg-indigo-600 w-full" />
+            <CardContent className="p-12 space-y-12">
+              <div className="relative group cursor-pointer h-96 rounded-[40px] border-2 border-dashed border-zinc-100 bg-zinc-50 overflow-hidden flex items-center justify-center transition-all hover:bg-zinc-100">
+                {imageUrlPreview ? (
+                  <img
+                    src={imageUrlPreview}
+                    className="w-full h-full object-cover"
+                    alt="Banner"
+                  />
+                ) : (
+                  <div className="text-center space-y-2">
+                    <Upload size={40} className="mx-auto text-indigo-600" />
+                    <p className="font-black text-zinc-300 text-[10px] tracking-widest">
+                      CHANGE BANNER
+                    </p>
+                  </div>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
                 />
-              ) : (
-                <div className="text-center space-y-2">
-                  <Upload size={40} className="mx-auto text-indigo-600" />
-                  <p className="font-black text-zinc-300 text-[10px] tracking-widest">
-                    CHANGE BANNER
-                  </p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-10">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                    Event Title
+                  </label>
+                  <Input
+                    {...register("title", { required: true })}
+                    className="h-16 rounded-2xl border-zinc-100 bg-zinc-50/50 focus:bg-white text-lg font-bold"
+                  />
                 </div>
-              )}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-            </div>
-
-            <div className="grid md:grid-cols-2 gap-10">
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                  Event Title
-                </label>
-                <Input
-                  {...register("title", { required: true })}
-                  className="h-16 rounded-2xl border-zinc-100 bg-zinc-50/50 focus:bg-white text-lg font-bold"
-                />
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                    Date & Time
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    {...register("date", { required: true })}
+                    className="h-16 rounded-2xl border-zinc-100 bg-zinc-50/50 focus:bg-white text-lg"
+                  />
+                </div>
               </div>
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                  Date & Time
+                  Location
                 </label>
                 <Input
-                  type="datetime-local"
-                  {...register("date", { required: true })}
+                  {...register("location", { required: true })}
                   className="h-16 rounded-2xl border-zinc-100 bg-zinc-50/50 focus:bg-white text-lg"
                 />
               </div>
-            </div>
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                Location
-              </label>
-              <Input
-                {...register("location", { required: true })}
-                className="h-16 rounded-2xl border-zinc-100 bg-zinc-50/50 focus:bg-white text-lg"
-              />
-            </div>
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                Description
-              </label>
-              <textarea
-                {...register("description")}
-                className="w-full p-8 rounded-[30px] border-zinc-100 bg-zinc-50/50 min-h-[150px] focus:bg-white outline-none transition-all"
-              />
-            </div>
-          </CardContent>
-        </Card>
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                  Description
+                </label>
+                <textarea
+                  {...register("description")}
+                  className="w-full p-8 rounded-[30px] border-zinc-100 bg-zinc-50/50 min-h-[150px] focus:bg-white outline-none transition-all"
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-        {/* Section 2: Zones */}
-        <Card className="border-none shadow-2xl rounded-[50px] overflow-hidden bg-white">
-          <div className="h-4 bg-emerald-500 w-full" />
-          <CardHeader className="p-12 pb-0 flex flex-row items-center justify-between">
-            <CardTitle className="text-3xl font-black italic tracking-tighter">
-              ZONE DESIGNER
-            </CardTitle>
-            <Button
-              type="button"
-              onClick={() =>
-                append({
-                  name: "",
-                  price: 0,
-                  totalSeats: 0,
-                  type: "standing",
-                  rows: 0,
-                  seatsPerRow: 0,
-                })
-              }
-              className="rounded-2xl h-14 px-8 bg-zinc-900 text-white font-bold hover:bg-black transition-all"
-            >
-              <Plus className="mr-2" /> ADD ZONE
-            </Button>
-          </CardHeader>
-          <CardContent className="p-12 space-y-12">
-            {fields.map((field, index) => (
-              <div
-                key={field.id}
-                className="p-12 rounded-[50px] border border-zinc-100 bg-zinc-50/30 relative group transition-all duration-500 hover:border-indigo-200"
+          {/* Section 2: Zones */}
+          <Card className="border-none shadow-2xl rounded-[50px] overflow-hidden bg-white">
+            <div className="h-4 bg-emerald-500 w-full" />
+            <CardHeader className="p-12 pb-0 flex flex-row items-center justify-between">
+              <CardTitle className="text-3xl font-black italic tracking-tighter">
+                ZONE DESIGNER
+              </CardTitle>
+              <Button
+                type="button"
+                onClick={() =>
+                  append({
+                    name: "",
+                    price: 0,
+                    totalSeats: 0,
+                    type: "standing",
+                    rows: 0,
+                    seatsPerRow: 0,
+                  })
+                }
+                className="rounded-2xl h-14 px-8 bg-zinc-900 text-white font-bold hover:bg-black transition-all"
               >
-                <button
-                  type="button"
-                  onClick={() => remove(index)}
-                  className="absolute top-8 right-8 w-12 h-12 bg-white text-zinc-300 hover:text-rose-500 rounded-full flex items-center justify-center shadow-sm transition-all hover:scale-110"
+                <Plus className="mr-2" /> ADD ZONE
+              </Button>
+            </CardHeader>
+            <CardContent className="p-12 space-y-12">
+              {fields.map((field, index) => (
+                <div
+                  key={field.id}
+                  className="p-12 rounded-[50px] border border-zinc-100 bg-zinc-50/30 relative group transition-all duration-500 hover:border-indigo-200"
                 >
-                  <Trash2 size={20} />
-                </button>
-                <div className="grid lg:grid-cols-12 gap-12">
-                  <div className="lg:col-span-5 space-y-8">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-zinc-400">
-                          Zone Name
-                        </label>
-                        <Input
-                          {...register(`zones.${index}.name`)}
-                          className="h-14 rounded-2xl bg-white"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-zinc-400">
-                          Price (THB)
-                        </label>
-                        <Input
-                          type="number"
-                          {...register(`zones.${index}.price`)}
-                          className="h-14 rounded-2xl bg-white font-bold text-emerald-600"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-4">
-                      <label className="text-[10px] font-black text-zinc-400">
-                        Seat Type
-                      </label>
-                      <div className="flex p-2 bg-zinc-100 rounded-[20px]">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setValue(`zones.${index}.type`, "standing")
-                          }
-                          className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${watchZones?.[index]?.type === "standing" ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-400"}`}
-                        >
-                          STANDING
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setValue(`zones.${index}.type`, "seated")
-                          }
-                          className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${watchZones?.[index]?.type === "seated" ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-400"}`}
-                        >
-                          SEATED
-                        </button>
-                      </div>
-                    </div>
-                    {watchZones?.[index]?.type === "seated" ? (
-                      <div className="grid grid-cols-2 gap-6 animate-in slide-in-from-left-4">
+                  <button
+                    type="button"
+                    onClick={() => remove(index)}
+                    className="absolute top-8 right-8 w-12 h-12 bg-white text-zinc-300 hover:text-rose-500 rounded-full flex items-center justify-center shadow-sm transition-all hover:scale-110"
+                  >
+                    <Trash2 size={20} />
+                  </button>
+                  <div className="grid lg:grid-cols-12 gap-12">
+                    <div className="lg:col-span-5 space-y-8">
+                      <div className="space-y-4">
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-zinc-400">
-                            Rows
+                            Zone Name
                           </label>
                           <Input
-                            type="number"
-                            {...register(`zones.${index}.rows`)}
+                            {...register(`zones.${index}.name`)}
                             className="h-14 rounded-2xl bg-white"
                           />
                         </div>
                         <div className="space-y-2">
                           <label className="text-[10px] font-black text-zinc-400">
-                            Seats/Row
+                            Price (THB)
                           </label>
                           <Input
                             type="number"
-                            {...register(`zones.${index}.seatsPerRow`)}
-                            className="h-14 rounded-2xl bg-white"
+                            {...register(`zones.${index}.price`)}
+                            className="h-14 rounded-2xl bg-white font-bold text-emerald-600"
                           />
                         </div>
                       </div>
-                    ) : (
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         <label className="text-[10px] font-black text-zinc-400">
-                          Capacity
+                          Seat Type
                         </label>
-                        <Input
-                          type="number"
-                          {...register(`zones.${index}.totalSeats`)}
-                          className="h-14 rounded-2xl bg-white"
-                        />
+                        <div className="flex p-2 bg-zinc-100 rounded-[20px]">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setValue(`zones.${index}.type`, "standing")
+                            }
+                            className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${watchZones?.[index]?.type === "standing" ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-400"}`}
+                          >
+                            STANDING
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setValue(`zones.${index}.type`, "seated")
+                            }
+                            className={`flex-1 py-3 rounded-xl text-[10px] font-black transition-all ${watchZones?.[index]?.type === "seated" ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-400"}`}
+                          >
+                            SEATED
+                          </button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="lg:col-span-7">
-                    <SeatMapPreview zone={watchZones?.[index]} />
+                      {watchZones?.[index]?.type === "seated" ? (
+                        <div className="grid grid-cols-2 gap-6 animate-in slide-in-from-left-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-400">
+                              Rows
+                            </label>
+                            <Input
+                              type="number"
+                              {...register(`zones.${index}.rows`)}
+                              className="h-14 rounded-2xl bg-white"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-zinc-400">
+                              Seats/Row
+                            </label>
+                            <Input
+                              type="number"
+                              {...register(`zones.${index}.seatsPerRow`)}
+                              className="h-14 rounded-2xl bg-white"
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-zinc-400">
+                            Capacity
+                          </label>
+                          <Input
+                            type="number"
+                            {...register(`zones.${index}.totalSeats`)}
+                            className="h-14 rounded-2xl bg-white"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="lg:col-span-7">
+                      <SeatMapPreview zone={watchZones?.[index]} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
 
-        {watchZones?.length > 0 && (
-          <GlobalStadiumPreview zones={watchZones as any[]} />
-        )}
+          {watchZones?.length > 0 && (
+            <GlobalStadiumPreview zones={watchZones as any[]} />
+          )}
 
-        <div className="flex items-center justify-end gap-8 pb-32">
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="text-[10px] font-black text-zinc-400 hover:text-black tracking-[0.2em] uppercase"
-          >
-            Cancel Changes
-          </button>
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="h-24 px-20 bg-zinc-900 text-white rounded-[40px] font-black text-2xl shadow-2xl hover:bg-black hover:scale-105 active:scale-95 transition-all"
-          >
-            {isLoading ? <Loader2 className="animate-spin mr-3" /> : null}{" "}
-            UPDATE EVENT
-          </Button>
-        </div>
-      </form>
+          <div className="flex items-center justify-end gap-8 pb-32">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="text-[10px] font-black text-zinc-400 hover:text-black tracking-[0.2em] uppercase"
+            >
+              Cancel Changes
+            </button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="h-24 px-20 bg-zinc-900 text-white rounded-[40px] font-black text-2xl shadow-2xl hover:bg-black hover:scale-105 active:scale-95 transition-all"
+            >
+              {isLoading ? <Loader2 className="animate-spin mr-3" /> : null}{" "}
+              UPDATE EVENT
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
