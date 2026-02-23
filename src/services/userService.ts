@@ -1,3 +1,4 @@
+// src/services/userService.ts
 import api from '@/lib/axios';
 import { User } from '@/types';
 import { API_PATHS } from '@/lib/constants';

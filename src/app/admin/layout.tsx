@@ -4,7 +4,13 @@ import React, { useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard, CalendarPlus, LogOut, Ticket, Users } from "lucide-react";
+import {
+  LayoutDashboard,
+  CalendarPlus,
+  LogOut,
+  Ticket,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui";
 
 export default function AdminLayout({
@@ -52,8 +58,11 @@ export default function AdminLayout({
           <h1 className="text-xl font-bold text-indigo-600">Admin Panel</h1>
         </div>
 
-        {/* เมนูหลักตรงกลาง (เลื่อนหน้าจอได้ถ้าเมนูยาวเกินไป) */}
-        <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-2">
+        {/* เมนูหลักตรงกลาง (เพิ่ม data-lenis-prevent เพื่อไม่ให้กวนการทำงานของหน้าต่างหลัก) */}
+        <nav
+          className="flex-1 overflow-y-auto px-4 py-6 space-y-2"
+          data-lenis-prevent="true"
+        >
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -61,10 +70,11 @@ export default function AdminLayout({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center rounded-lg px-4 py-3 text-sm font-medium transition-colors ${isActive
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-zinc-700 hover:bg-zinc-50 hover:text-indigo-600"
-                  }`}
+                className={`flex items-center rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                  isActive
+                    ? "bg-indigo-50 text-indigo-700"
+                    : "text-zinc-700 hover:bg-zinc-50 hover:text-indigo-600"
+                }`}
               >
                 <Icon className="mr-3 h-5 w-5" />
                 {item.label}
@@ -85,7 +95,7 @@ export default function AdminLayout({
               viewBox="0 0 24 24"
               strokeWidth="1.5"
               stroke="currentColor"
-              className="size-6"
+              className="size-6 mr-3"
             >
               <path
                 strokeLinecap="round"
@@ -107,8 +117,8 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1 p-8">
-        <div className="max-w-7xl">{children}</div>
+      <main className="pl-64 w-full min-h-screen">
+        <div className="p-8 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>
   );

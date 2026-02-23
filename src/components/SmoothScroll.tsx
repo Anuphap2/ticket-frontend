@@ -1,35 +1,36 @@
 "use client";
 
-import React, { useLayoutEffect } from "react";
+import { ReactLenis } from "@studio-freight/react-lenis";
 import gsap from "gsap";
 import ScrollTrigger from "gsap/ScrollTrigger";
-import ScrollSmoother from "gsap/ScrollSmoother";
+import { useEffect, ReactNode } from "react";
 
-// ลงทะเบียน Plugins นอกเหนือจากการรันฝั่ง Server
 if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
+  gsap.registerPlugin(ScrollTrigger);
 }
 
-export function SmoothScroll({ children }: { children: React.ReactNode }) {
-  useLayoutEffect(() => {
-    // สร้าง ScrollSmoother Instance
-    const smoother = ScrollSmoother.create({
-      wrapper: "#smooth-wrapper",
-      content: "#smooth-content",
-      smooth: 1.5, // ระยะเวลาความหน่วง (วินาที)
-      effects: true, // เปิดใช้งานเอฟเฟกต์ parallax หรือความเร็วที่ต่างกัน
-      smoothTouch: 0.1, // ทำให้การสัมผัสบนมือถือสมูทขึ้นเล็กน้อย (ถ้าต้องการ)
-    });
+interface SmoothScrollProps {
+  children: ReactNode;
+}
 
-    // ล้างค่าเมื่อ Component ถูกถอดออกเพื่อป้องกัน Memory Leak
+export default function SmoothScroll({ children }: SmoothScrollProps) {
+  useEffect(() => {
+    // เอาพารามิเตอร์ time ออกเพื่อแก้ปัญหา unused variables
+    function update() {
+      ScrollTrigger.update();
+    }
+
+    gsap.ticker.add(update);
+
     return () => {
-      smoother.kill();
+      gsap.ticker.remove(update);
     };
   }, []);
 
   return (
-    <div id="smooth-wrapper">
-      <div id="smooth-content">{children}</div>
-    </div>
+    <ReactLenis root options={{ lerp: 0.1, duration: 1.5, smoothWheel: true }}>
+      {/* ใส่ as any เพื่อแก้ปัญหา Type ขัดแย้งกันระหว่าง React 18 และ 19 */}
+      {children as any}
+    </ReactLenis>
   );
 }

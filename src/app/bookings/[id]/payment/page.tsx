@@ -50,7 +50,6 @@ function CheckoutForm({
 
     setIsLoading(true);
 
-    // Step 1: Validate the form fields
     const { error: submitError } = await elements.submit();
     if (submitError) {
       setMessage(submitError.message || "Please check your card details.");
@@ -58,24 +57,37 @@ function CheckoutForm({
       return;
     }
 
-    // Step 2: Confirm payment — Stripe will redirect to return_url on success.
-    // The paymentIntent variable does NOT exist here; Stripe handles success via redirect.
-    const { error } = await stripe.confirmPayment({
+    const returnUrl = `${window.location.origin}${ROUTES.bookingSuccess(bookingId)}`;
+
+    // แจ้ง Stripe ว่าไม่ต้อง Redirect อัตโนมัติ (ถ้าไม่จำเป็น)
+    const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}${ROUTES.bookingSuccess(bookingId)}`,
+        return_url: returnUrl,
       },
+      redirect: "if_required", // <--- จุดสำคัญ
     });
 
-    // Only runs if confirmPayment throws (card declined, validation, etc.)
     if (error) {
+      // กรณีบัตรไม่ผ่าน หรือข้อมูลผิดพลาด
       if (error.type === "card_error" || error.type === "validation_error") {
         setMessage(error.message || "Payment failed.");
       } else {
         setMessage("An unexpected error occurred. Please try again.");
       }
+      setIsLoading(false);
+    } else if (paymentIntent && paymentIntent.status === "succeeded") {
+      // กรณีจ่ายเงินสำเร็จ (ไม่ต้องผ่าน 3D Secure)
+      // เปิดแท็บใหม่ไปยังหน้า Success
+      window.open(returnUrl, "_blank");
+
+      // อัปเดตหน้าต่างปัจจุบันให้รู้ว่าจ่ายเสร็จแล้ว
+      setMessage("Payment successful! Your receipt has opened in a new tab.");
+      setIsLoading(false);
+
+      // คุณสามารถเพิ่ม router.push('/') ตรงนี้เพื่อพาแท็บเก่ากลับหน้าแรกได้
+      router.push("/");
     }
-    setIsLoading(false);
   };
 
   return (
@@ -91,7 +103,13 @@ function CheckoutForm({
       </div>
 
       {message && (
-        <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2">
+        <div
+          className={`p-4 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2 ${
+            message.includes("successful")
+              ? "bg-emerald-50 text-emerald-600"
+              : "bg-red-50 text-red-600"
+          }`}
+        >
           {message}
         </div>
       )}
@@ -236,10 +254,11 @@ export default function PaymentPage() {
           ) : (
             <div className="py-16 px-6 max-w-xl mx-auto space-y-8">
               <div
-                className={`p-6 rounded-[32px] border-2 transition-all flex items-center justify-between shadow-sm ${timeLeft < 120
+                className={`p-6 rounded-[32px] border-2 transition-all flex items-center justify-between shadow-sm ${
+                  timeLeft < 120
                     ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse"
                     : "bg-white border-zinc-100 text-zinc-900"
-                  }`}
+                }`}
               >
                 <div className="flex items-center gap-4">
                   <div

@@ -14,7 +14,9 @@ import {
   ArrowRight,
   LayoutDashboard,
   X,
-} from "lucide-react";
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react"; // 🎯 เพิ่ม ChevronLeft, ChevronRight เข้ามา
 
 interface PopulatedEvent {
   _id: string;
@@ -34,6 +36,10 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [allBookings, setAllBookings] = useState<Booking[]>([]);
   const [isFetching, setIsFetching] = useState(false);
+  
+  // 🎯 1. เพิ่ม State สำหรับจัดการหน้า Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 3;
 
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -50,6 +56,20 @@ export function Navbar() {
     });
   }, [allBookings]);
 
+  // 🎯 2. คำนวณข้อมูลที่จะแสดงในหน้านั้นๆ
+  const totalPages = Math.ceil(activeBookings.length / ITEMS_PER_PAGE);
+  const currentBookings = activeBookings.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // 🎯 3. รีเซ็ตกลับไปหน้า 1 เสมอเมื่อปิดแผง Navbar
+  useEffect(() => {
+    if (!isOpen) {
+      setTimeout(() => setCurrentPage(1), 300); // รอให้ Animation ปิดเสร็จก่อนค่อยรีเซ็ต
+    }
+  }, [isOpen]);
+
   // ── Toggle + lazy fetch ──────────────────────────────────────────────
   const togglePanel = async () => {
     const nextOpen = !isOpen;
@@ -65,13 +85,11 @@ export function Navbar() {
       try {
         const res = await bookingService.getMyBookings(1, 10);
 
-        // กำหนด Type โครงสร้างที่คาดหวังจาก API เพื่อแก้ปัญหา any และ never
         const apiResponse = res as
           | Booking[]
           | { data?: Booking[]; bookings?: Booking[] };
         let bookings: Booking[] = [];
 
-        // ตรวจสอบเงื่อนไขตามโครงสร้างที่กำหนดไว้
         if (Array.isArray(apiResponse)) {
           bookings = apiResponse;
         } else if (apiResponse && typeof apiResponse === "object") {
@@ -91,7 +109,7 @@ export function Navbar() {
     }
   };
 
-  // ── GSAP Animation (inspired by the second version – cleaner timeline) ──
+  // ── GSAP Animation ───────────────────────────────────────────────────
   useEffect(() => {
     if (!panelRef.current || !buttonRef.current) return;
 
@@ -141,32 +159,22 @@ export function Navbar() {
   }, [isOpen]);
 
   return (
-    <nav
-      className={`fixed top-0 left-0 w-full z-50 transition-all duration-300`}
-    >
-      <div
-        className={`
-          mx-auto max-w-5xl
-          bg-white/85 backdrop-blur-md
-          rounded-b-0 border border-zinc-200/60 shadow-md
-          overflow-hidden relative
-          lg:rounded-b-3xl
-        `}
-      >
-        {/* Top bar – grid layout like the second version */}
+    <nav className="fixed top-0 left-0 w-full z-50 transition-all duration-300">
+      <div className="mx-auto max-w-5xl bg-white/85 backdrop-blur-md rounded-b-0 border border-zinc-200/60 shadow-md overflow-hidden relative lg:rounded-b-3xl">
+        {/* Top bar */}
         <div className="grid grid-cols-3 items-center px-6 sm:px-8 h-16">
-          {/* Left – logo */}
           <div className="flex justify-start">
             <Link
               href="/"
               className="text-xl font-black tracking-tight text-zinc-900 flex items-center gap-2"
             >
               <Ticket className="w-6 h-6 text-indigo-600" />
-              <div className="hidden md:flex">Ticket<span className="text-indigo-600">APP</span></div>
+              <div className="hidden md:flex">
+                Ticket<span className="text-indigo-600">APP</span>
+              </div>
             </Link>
           </div>
 
-          {/* Center – toggle button */}
           <div className="flex justify-center">
             {isAuthenticated && (
               <button
@@ -187,59 +195,33 @@ export function Navbar() {
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2.5}
-                    d="m19.5 8.25-7.5 7.5-7.5-7.5"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="m19.5 8.25-7.5 7.5-7.5-7.5" />
                 </svg>
               </button>
             )}
           </div>
 
-          {/* Right – auth area */}
           <div className="flex justify-end items-center gap-5">
             {!isAuthenticated ? (
               <>
-                <Link
-                  href="/login"
-                  className="text-sm font-medium text-zinc-700 hover:text-black"
-                >
-                  Login
-                </Link>
-                <Link
-                  href="/register"
-                  className="px-5 py-2 bg-zinc-900 text-white text-sm font-medium rounded-full hover:bg-zinc-800 transition"
-                >
-                  Join
-                </Link>
+                <Link href="/login" className="text-sm font-medium text-zinc-700 hover:text-black">Login</Link>
+                <Link href="/register" className="px-5 py-2 bg-zinc-900 text-white text-sm font-medium rounded-full hover:bg-zinc-800 transition">Join</Link>
               </>
             ) : (
               <div className="flex items-center gap-4">
                 {isAdmin && (
-                  <Link
-                    href="/admin"
-                    className="text-sm text-amber-600 hover:text-amber-500"
-                  >
-                    Admin
-                  </Link>
+                  <Link href="/admin" className="text-sm text-amber-600 hover:text-amber-500">Admin</Link>
                 )}
                 <span className="text-sm text-zinc-500 hidden sm:block">
                   {user?.firstName || user?.email?.split("@")[0]}
                 </span>
-                <button
-                  onClick={logout}
-                  className="text-sm text-rose-600 hover:text-rose-700 font-medium"
-                >
-                  Logout
-                </button>
+                <button onClick={logout} className="text-sm text-rose-600 hover:text-rose-700 font-medium">Logout</button>
               </div>
             )}
           </div>
         </div>
 
-        {/* ── Panel ──────────────────────────────────────────────────────── */}
+        {/* Panel */}
         {isAuthenticated && (
           <div
             ref={panelRef}
@@ -247,10 +229,11 @@ export function Navbar() {
           >
             <div className="py-10 px-6 sm:px-10 max-w-3xl mx-auto relative min-h-80 flex flex-col">
               <div className="flex-1 space-y-6">
-                {/* Active bookings list */}
+                
+                {/* 🎯 4. เปลี่ยนเป็นใช้ currentBookings แทน activeBookings */}
                 {activeBookings.length > 0 ? (
                   <div className="space-y-4">
-                    {activeBookings.map((booking) => (
+                    {currentBookings.map((booking) => (
                       <Link
                         key={booking._id}
                         href="/my-bookings"
@@ -267,20 +250,39 @@ export function Navbar() {
                           </div>
                           <div>
                             <p className="font-semibold text-zinc-900 truncate max-w-65 md:max-w-md">
-                              {
-                                (booking.eventId as unknown as PopulatedEvent)
-                                  ?.title
-                              }
+                              {(booking.eventId as unknown as PopulatedEvent)?.title}
                             </p>
                             <p className="text-sm text-zinc-500 mt-0.5">
-                              Zone {booking.zoneName} • {booking.quantity}{" "}
-                              ticket(s)
+                              Zone {booking.zoneName} • {booking.quantity} ticket(s)
                             </p>
                           </div>
                         </div>
                         <ArrowRight className="text-zinc-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all" />
                       </Link>
                     ))}
+
+                    {/* 🎯 5. ชุดควบคุม Pagination (แสดงเมื่อมีมากกว่า 1 หน้า) */}
+                    {totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-4 pt-2">
+                        <button
+                          onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                          disabled={currentPage === 1}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                        >
+                          <ChevronLeft size={18} />
+                        </button>
+                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                          Page {currentPage} of {totalPages}
+                        </span>
+                        <button
+                          onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                          disabled={currentPage === totalPages}
+                          className="p-1.5 rounded-lg text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+                        >
+                          <ChevronRight size={18} />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="py-12 text-center text-zinc-400 italic">
@@ -289,29 +291,10 @@ export function Navbar() {
                 )}
 
                 {/* Quick links */}
-                <div
-                  className={`grid ${isAdmin ? "grid-cols-3" : "grid-cols-2"} gap-4 mt-8`}
-                >
-                  <QuickLink
-                    href="/profile"
-                    icon={<User size={18} />}
-                    label="Profile"
-                    onClick={() => setIsOpen(false)}
-                  />
-                  <QuickLink
-                    href="/my-bookings"
-                    icon={<CreditCard size={18} />}
-                    label="My Bookings"
-                    onClick={() => setIsOpen(false)}
-                  />
-                  {isAdmin && (
-                    <QuickLink
-                      href="/admin"
-                      icon={<LayoutDashboard size={18} />}
-                      label="Admin Panel"
-                      onClick={() => setIsOpen(false)}
-                    />
-                  )}
+                <div className={`grid ${isAdmin ? "grid-cols-3" : "grid-cols-2"} gap-4 mt-8`}>
+                  <QuickLink href="/profile" icon={<User size={18} />} label="Profile" onClick={() => setIsOpen(false)} />
+                  <QuickLink href="/my-bookings" icon={<CreditCard size={18} />} label="My Bookings" onClick={() => setIsOpen(false)} />
+                  {isAdmin && <QuickLink href="/admin" icon={<LayoutDashboard size={18} />} label="Admin Panel" onClick={() => setIsOpen(false)} />}
                 </div>
               </div>
 
