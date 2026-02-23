@@ -1,7 +1,7 @@
 import api from '@/lib/axios';
-import { Booking } from '@/types';
+import { Booking, CreateBookingDto } from '@/types';
+import { API_PATHS } from '@/lib/constants';
 
-// กำหนด Interface สำหรับผลลัพธ์ที่มี Pagination
 export interface AdminBookingsResponse {
     data: Booking[];
     total: number;
@@ -10,71 +10,71 @@ export interface AdminBookingsResponse {
 }
 
 export const bookingService = {
-    // 1. จองตั๋ว (จะได้รับ trackingId กลับมา)
-    create: async (data: { eventId: string; zoneName: string; quantity: number; seatNumbers?: string[] }): Promise<{
-        trackingId: string;
-        status: string;
-        bookingId?: string;
-        _id?: string;
-    }> => {
-        const response = await api.post('/bookings', data);
+    // Create a booking (returns trackingId for queue, or bookingId for direct)
+    create: async (
+        data: CreateBookingDto,
+    ): Promise<{ trackingId?: string; bookingId?: string; _id?: string; status: string }> => {
+        const response = await api.post(API_PATHS.bookings.base, data);
         return response.data;
     },
 
-    // 2. เช็คสถานะคิว (สำหรับทำ Polling ในหน้า UI)
-    checkStatus: async (trackingId: string): Promise<{ status: string; bookingId?: string; message?: string }> => {
-        const response = await api.get(`/bookings/status/${trackingId}`);
+    // Poll queue status by trackingId
+    checkStatus: async (
+        trackingId: string,
+    ): Promise<{ status: string; bookingId?: string; message?: string }> => {
+        const response = await api.get(API_PATHS.bookings.status(trackingId));
         return response.data;
     },
 
-    // 3. ดูประวัติการจองของตัวเอง
-    getMyBookings: async (page: number = 1, limit: number = 10): Promise<Booking[]> => {
-        const response = await api.get(`/bookings/myBookings?page=${page}&limit=${limit}`);
-        return response.data;
+    // Fetch current user's bookings — always returns Booking[]
+    getMyBookings: async (page = 1, limit = 10): Promise<Booking[]> => {
+        const response = await api.get(
+            `${API_PATHS.bookings.myBookings}?page=${page}&limit=${limit}`,
+        );
+        // Normalise: backend may return array or { data: [] }
+        const raw = Array.isArray(response) ? response : (response as any).data ?? response;
+        return Array.isArray(raw) ? raw : [];
     },
 
-    getAll: async (isAdmin: boolean = false): Promise<Booking[]> => {
-        // ถ้าเป็น Admin ให้เรียก all-bookings ถ้าไม่ใช่ให้เรียก myBookings
-        const endpoint = isAdmin ? '/bookings/all-bookings' : '/bookings/myBookings';
-        const response: any = await api.get(`${endpoint}?page=1&limit=1000`);
-
-        // 🎯 หัวใจสำคัญ: เช็คโครงสร้างข้อมูลก่อนส่งกลับ
-        // ถ้า response.data เป็น Array (แกะมาแล้วจาก Interceptor) ก็ส่งกลับเลย
-        // ถ้าเป็น Object ให้ดึงฟิลด์ data ข้างในมาส่งกลับ
-        const finalData = Array.isArray(response) ? response : response.data;
-
-        return Array.isArray(finalData) ? finalData : [];
-    },
-
-    // getAllForAdmin สำหรับหน้า List ที่มี Pagination (คงเดิมแต่ทำให้ชัวร์)
-    getAllForAdmin: async (page: number = 1, limit: number = 20): Promise<AdminBookingsResponse> => {
-        const response: any = await api.get(`/bookings/all-bookings?page=${page}&limit=${limit}`);
+    // Admin: fetch all bookings with pagination
+    getAllForAdmin: async (
+        page = 1,
+        limit = 20,
+    ): Promise<AdminBookingsResponse> => {
+        const response: any = await api.get(
+            `${API_PATHS.bookings.allBookings}?page=${page}&limit=${limit}`,
+        );
         const data = Array.isArray(response.data) ? response.data : [];
-
         return {
-            data: data,
-            total: response.meta?.total || 0,
+            data,
+            total: response.meta?.total ?? 0,
             currentPage: Number(response.meta?.page) || 1,
-            totalPages: Math.ceil((response.meta?.total || 0) / (limit || 1))
+            totalPages: Math.ceil((response.meta?.total ?? 0) / limit),
         };
     },
+
+    // Admin: fetch a large flat list (for dashboard stats)
+    getAllFlat: async (): Promise<Booking[]> => {
+        const response: any = await api.get(
+            `${API_PATHS.bookings.allBookings}?page=1&limit=1000`,
+        );
+        const raw = Array.isArray(response) ? response : response.data;
+        return Array.isArray(raw) ? raw : [];
+    },
+
     updateStatus: async (id: string, status: string): Promise<Booking> => {
-        const response = await api.patch(`/bookings/${id}/status`, { status });
+        const response = await api.patch(API_PATHS.bookings.updateStatus(id), { status });
         return response.data;
     },
 
-    // 6. Generic getAll for hooks that expect a simple list (fetches first page with high limit)
-
-    refund: async (id: string) => {
-        const response = await api.patch(`/bookings/${id}/status`, {
-            status: 'refunded'
+    refund: async (id: string): Promise<Booking> => {
+        const response = await api.patch(API_PATHS.bookings.updateStatus(id), {
+            status: 'refunded',
         });
         return response.data;
     },
 
-    // อิงตาม @Patch(':id/status') หรือสร้าง Delete endpoint เพิ่มที่หลังบ้าน
-    delete: async (id: string) => {
-        const response = await api.delete(`/bookings/${id}`);
-        return response.data;
-    }
+    delete: async (id: string): Promise<void> => {
+        await api.delete(API_PATHS.bookings.delete(id));
+    },
 };

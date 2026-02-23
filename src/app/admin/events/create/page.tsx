@@ -212,7 +212,7 @@ export default function CreateEventPage() {
       toast.error("Please upload an event cover");
       return;
     }
-    
+
     setIsLoading(true);
     try {
       let finalImageUrl = data.imageUrl;
@@ -271,18 +271,37 @@ export default function CreateEventPage() {
           </CardHeader>
           <CardContent className="p-12 space-y-12">
             {/* Image Upload Area */}
-            <div className="relative group cursor-pointer h-[400px] rounded-[40px] border-2 border-dashed border-zinc-100 bg-zinc-50/50 overflow-hidden flex items-center justify-center transition-all hover:bg-zinc-50">
-              {imageUrlPreview ? (
-                <img src={imageUrlPreview} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Preview" />
-              ) : (
-                <div className="text-center">
-                  <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto mb-4 text-indigo-600">
-                    <Upload size={32} />
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">
+                Event Banner
+                {selectedFile && (
+                  <span className="ml-2 text-indigo-600 normal-case font-semibold text-[9px]">
+                    ✓ {selectedFile.name}
+                  </span>
+                )}
+              </label>
+              <div className="relative group cursor-pointer h-[400px] rounded-[40px] border-2 border-dashed border-zinc-100 bg-zinc-50/50 overflow-hidden flex items-center justify-center transition-all hover:bg-zinc-50">
+                {imageUrlPreview ? (
+                  <img src={imageUrlPreview} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Preview" />
+                ) : (
+                  <div className="text-center">
+                    <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto mb-4 text-indigo-600">
+                      <Upload size={32} />
+                    </div>
+                    <p className="font-black text-zinc-300 tracking-widest text-[10px]">DROP EVENT POSTER HERE</p>
                   </div>
-                  <p className="font-black text-zinc-300 tracking-widest text-[10px]">DROP EVENT POSTER HERE</p>
+                )}
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="bg-white/90 rounded-2xl px-6 py-3 flex items-center gap-3 shadow-lg">
+                    <Upload size={18} className="text-zinc-700" />
+                    <span className="text-xs font-black text-zinc-800 uppercase tracking-widest">
+                      {imageUrlPreview ? "Click to change image" : "Click to upload image"}
+                    </span>
+                  </div>
                 </div>
-              )}
-              <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+                <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer" />
+              </div>
             </div>
 
             {/* Inputs */}
@@ -299,6 +318,15 @@ export default function CreateEventPage() {
             <div className="space-y-3">
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Venue Location</label>
               <Input {...register("location", { required: true })} className="h-16 rounded-2xl border-zinc-100 bg-zinc-50/50 focus:bg-white transition-all text-lg" placeholder="Rajamangala Stadium, Bangkok" />
+            </div>
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Description <span className="normal-case font-medium text-zinc-300">(optional)</span></label>
+              <textarea
+                {...register("description")}
+                rows={4}
+                placeholder="Tell attendees about the event…"
+                className="w-full p-5 rounded-[30px] border border-zinc-100 bg-zinc-50/50 focus:bg-white outline-none transition-all resize-none text-sm text-zinc-700 placeholder-zinc-300 focus:border-indigo-200"
+              />
             </div>
           </CardContent>
         </Card>
@@ -320,7 +348,7 @@ export default function CreateEventPage() {
                 <button type="button" onClick={() => remove(index)} className="absolute top-8 right-8 w-12 h-12 bg-white text-zinc-300 hover:text-rose-500 rounded-full flex items-center justify-center shadow-sm transition-all hover:scale-110">
                   <Trash2 size={20} />
                 </button>
-                
+
                 <div className="grid lg:grid-cols-12 gap-12">
                   <div className="lg:col-span-5 space-y-8">
                     <div className="grid gap-6">
@@ -368,7 +396,7 @@ export default function CreateEventPage() {
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="lg:col-span-7">
                     <SeatMapPreview zone={watchZones?.[index]} />
                   </div>

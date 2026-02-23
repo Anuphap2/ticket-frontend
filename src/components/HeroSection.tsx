@@ -16,15 +16,16 @@ export function HeroSection() {
         loop
         muted
         playsInline
-        preload="auto"
+        preload="metadata"
         className="absolute inset-0 w-full h-full object-cover z-0 opacity-60"
+        style={{ willChange: "transform", transform: "translateZ(0)" }}
       >
         <source src="/video/Background_video.mp4" type="video/mp4" />
       </video>
 
-      {/* 2. Optimized Overlay */}
-      <div className="absolute inset-0 z-10 bg-linear-to-r from-zinc-950 via-zinc-950/60 to-transparent"></div>
-      <div className="absolute inset-0 z-10 bg-black/20 backdrop-blur-xs"></div>
+      {/* 2. Overlay — gradient only, no backdrop-blur (GPU-heavy) */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-r from-zinc-950 via-zinc-950/60 to-transparent" />
+      <div className="absolute inset-0 z-10 bg-black/25" />
 
       {/* 3. Content */}
       <div className="relative z-20 mx-auto max-w-7xl px-6 lg:px-8 w-full text-center lg:text-left">
@@ -48,9 +49,9 @@ export function HeroSection() {
             {/* 🎯 สลับปุ่มตามสถานะ Login */}
             {isAuthenticated ? (
               <Link href="/my-bookings">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
+                <Button
+                  variant="outline"
+                  size="lg"
                   className="rounded-full px-10 h-14 text-base font-bold bg-white/5 text-white border-white/20 hover:bg-white/10 transition-colors group"
                 >
                   <UserCircle className="w-5 h-5 mr-2 text-indigo-400" />
@@ -60,9 +61,9 @@ export function HeroSection() {
               </Link>
             ) : (
               <Link href="/register">
-                <Button 
-                  variant="outline" 
-                  size="lg" 
+                <Button
+                  variant="outline"
+                  size="lg"
                   className="rounded-full px-10 h-14 text-base font-bold bg-white/5 text-white border-white/20 hover:bg-white/10 transition-colors"
                 >
                   Create account

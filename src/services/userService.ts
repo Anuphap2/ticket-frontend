@@ -1,43 +1,24 @@
 import api from '@/lib/axios';
 import { User } from '@/types';
+import { API_PATHS } from '@/lib/constants';
 
 export const userService = {
     getAll: async (): Promise<User[]> => {
-        try {
-            const response = await api.get('/users');
-            return response.data?.data || response.data;
-        } catch (error) {
-            console.warn("Backend /users not found, using empty array");
-            return []; // 🎯 คืนค่า Array ว่างไปก่อน หน้าเว็บจะไม่พังแต่ชื่อจะขึ้นเป็น Guest
-        }
+        const response = await api.get(API_PATHS.users.base);
+        return response.data?.data ?? response.data ?? [];
     },
 
     getById: async (id: string): Promise<User> => {
-        try {
-            const response = await api.get(`/users/${id}`);
-            return response.data;
-        } catch (error) {
-            console.error("Failed to fetch user:", error);
-            throw error;
-        }
+        const response = await api.get(API_PATHS.users.byId(id));
+        return response.data;
     },
 
     delete: async (id: string): Promise<void> => {
-        try {
-            await api.delete(`/users/${id}`);
-        } catch (error) {
-            console.error("Failed to delete user:", error);
-            throw error;
-        }
+        await api.delete(API_PATHS.users.byId(id));
     },
 
     update: async (id: string, data: Partial<User>): Promise<User> => {
-        try {
-            const response = await api.patch(`/users/${id}`, data);
-            return response.data;
-        } catch (error) {
-            console.error("Failed to update user:", error);
-            throw error;
-        }
-    }
+        const response = await api.patch(API_PATHS.users.byId(id), data);
+        return response.data;
+    },
 };

@@ -11,10 +11,11 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { format } from "date-fns";
 import toast from "react-hot-toast";
-import api from "@/lib/axios";
 import { Event, Ticket } from "@/types";
 import { useAuth } from "@/context/AuthContext";
+import { eventService } from "@/services/eventService";
 import { bookingService } from "@/services/bookingService";
+import { ROUTES } from "@/lib/constants";
 import {
   Button,
   Input,
@@ -55,6 +56,8 @@ export default function EventDetailsPage() {
 
   const main = useRef<HTMLDivElement | null>(null);
   const smoother = useRef<ScrollSmoother | null>(null);
+  // Stored so the polling interval can be cleared on unmount
+  const ticketPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useLayoutEffect(() => {
     gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
@@ -71,20 +74,17 @@ export default function EventDetailsPage() {
     return () => ctx.revert();
   }, []);
 
-  // 1. Initial Fetch
+  // 1. Initial Fetch — uses service layer, not raw api
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [eventRes, ticketsRes] = await Promise.all([
-          api.get(`/events/${id}`),
-          api.get(`/tickets/event/${id}`),
+        const [eventData, ticketsData] = await Promise.all([
+          eventService.getById(id as string),
+          eventService.getTicketsByEvent(id as string),
         ]);
 
-        const eventData = eventRes.data?.data || eventRes.data;
-        const ticketsData = ticketsRes.data?.data || ticketsRes.data;
-
         setEvent(eventData);
-        setTickets(Array.isArray(ticketsData) ? ticketsData : []);
+        setTickets(ticketsData);
 
         if (eventData?.zones?.length > 0) {
           setSelectedZone(eventData.zones[0].name);
@@ -99,19 +99,20 @@ export default function EventDetailsPage() {
     if (id) fetchData();
   }, [id]);
 
-  // 2. Polling for unavailable seats
+  // 2. Polling for unavailable seats — interval stored in ref and cleared on unmount
   useEffect(() => {
     if (!id) return;
-    const interval = setInterval(async () => {
+    ticketPollRef.current = setInterval(async () => {
       try {
-        const ticketsRes = await api.get(`/tickets/event/${id}`);
-        const ticketsData = ticketsRes.data?.data || ticketsRes.data;
-        setTickets(Array.isArray(ticketsData) ? ticketsData : []);
+        const ticketsData = await eventService.getTicketsByEvent(id as string);
+        setTickets(ticketsData);
       } catch (error) {
         console.error("Polling Error:", error);
       }
     }, 5000);
-    return () => clearInterval(interval);
+    return () => {
+      if (ticketPollRef.current) clearInterval(ticketPollRef.current);
+    };
   }, [id]);
 
   const selectedZoneDetails = event?.zones.find((z) => z.name === selectedZone);
@@ -158,7 +159,7 @@ export default function EventDetailsPage() {
   const handleBooking = async () => {
     if (!isAuthenticated) {
       toast.error("Please login before booking");
-      router.push("/login");
+      router.push(ROUTES.login);
       return;
     }
     if (isSeated && selectedSeats.some((s) => takenSeats.includes(s))) {
@@ -167,7 +168,6 @@ export default function EventDetailsPage() {
     }
 
     setIsBooking(true);
-    // ป้องกันกรณีผู้ใช้กรอกค่าน้อยกว่า 1 ก่อนกด Submit (สำหรับ General Admission)
     const bookingQuantity = isSeated
       ? selectedSeats.length
       : Math.max(1, quantity);
@@ -181,35 +181,37 @@ export default function EventDetailsPage() {
         seatNumbers: formattedSeats,
       });
 
-      const res =
-        (response as any).data?.data || (response as any).data || response;
-      if (res._id || res.id) {
+      // Direct booking — backend returned an ID immediately
+      if (response._id) {
         toast.success("Booking successful!");
-        router.push(`/bookings/${res._id || res.id}/payment`);
+        router.push(ROUTES.bookingPayment(response._id));
         return;
       }
 
-      if (res.trackingId) {
+      // Queue path — release the button lock immediately; user sees queue toast
+      if (response.trackingId) {
+        setIsBooking(false);
         toast.loading("Assigning you to the queue...", { id: "queue-status" });
         const checkQueue = setInterval(async () => {
-          const statusRes = await bookingService.checkStatus(res.trackingId);
-          const statusData =
-            (statusRes as any)?.data?.data ||
-            (statusRes as any)?.data ||
-            statusRes;
-          if (statusData?.status === "confirmed") {
-            clearInterval(checkQueue);
-            toast.success("It's your turn!", { id: "queue-status" });
-            router.push(`/bookings/${statusData.bookingId}/payment`);
-          } else if (statusData?.status === "failed") {
-            clearInterval(checkQueue);
-            setIsBooking(false);
-            toast.error(statusData.message || "Booking failed", {
-              id: "queue-status",
-            });
+          try {
+            const statusData = await bookingService.checkStatus(response.trackingId!);
+            if (statusData?.status === "confirmed" && statusData.bookingId) {
+              clearInterval(checkQueue);
+              toast.success("It's your turn!", { id: "queue-status" });
+              router.push(ROUTES.bookingPayment(statusData.bookingId));
+            } else if (statusData?.status === "failed") {
+              clearInterval(checkQueue);
+              toast.error(statusData.message || "Booking failed", { id: "queue-status" });
+            }
+          } catch {
+            // Polling errors are transient — keep retrying
           }
         }, 2000);
+        return;
       }
+
+      // Unexpected response shape
+      setIsBooking(false);
     } catch (error: any) {
       setIsBooking(false);
       toast.error(error.response?.data?.message || "An error occurred");
@@ -265,72 +267,58 @@ export default function EventDetailsPage() {
               </div>
 
               <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 -mt-6 relative z-10">
-                <div className="lg:col-span-8 space-y-6">
-                  <Card className="rounded-[32px] overflow-hidden border-none shadow-2xl bg-white">
-                    <CardHeader className="bg-zinc-50 border-b flex flex-col md:flex-row md:items-center justify-between p-6 gap-4">
-                      <CardTitle className="text-xl font-black italic flex items-center gap-2 uppercase">
-                        <Armchair className="text-indigo-600" /> SEAT MAP :{" "}
-                        {selectedZone}
-                      </CardTitle>
-                      <div className="flex flex-wrap bg-zinc-200 p-1 rounded-2xl gap-1">
-                        {event?.zones.map((z) => {
+                <div className="lg:col-span-8 space-y-4">
+                  {/* ── Zone Selector ───────────────────────────── */}
+                  {event?.zones && event.zones.length > 0 && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Select Zone</p>
+                      <div className={`grid gap-3 ${event.zones.length === 1 ? "grid-cols-1" : event.zones.length === 2 ? "grid-cols-2" : "grid-cols-2 sm:grid-cols-3"}`}>
+                        {event.zones.map((z) => {
                           const status = getStockStatus(z.availableSeats);
                           const isActive = selectedZone === z.name;
+                          const soldOut = z.availableSeats <= 0;
                           return (
                             <button
                               key={z.name}
-                              onClick={() => {
-                                setSelectedZone(z.name);
-                                setSelectedSeats([]);
-                                setQuantity(1); // รีเซ็ตจำนวนกลับเป็น 1 เมื่อเปลี่ยนโซน
-                              }}
-                              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all flex flex-col items-center min-w-[90px] ${isActive ? "bg-white text-indigo-600 shadow-sm" : "text-zinc-500 hover:bg-zinc-300/50"}`}
+                              disabled={soldOut}
+                              onClick={() => { setSelectedZone(z.name); setSelectedSeats([]); setQuantity(1); }}
+                              className={`relative p-4 rounded-2xl border-2 text-left transition-all duration-200 ${isActive ? "border-indigo-500 bg-indigo-50 shadow-lg shadow-indigo-100"
+                                  : soldOut ? "border-zinc-100 bg-zinc-50 opacity-50 cursor-not-allowed"
+                                    : "border-zinc-100 bg-white hover:border-indigo-300 hover:shadow-md"}`}
                             >
-                              <span className="uppercase">{z.name}</span>
-                              <span
-                                className={`text-[9px] font-black mt-0.5 uppercase ${status.color}`}
-                              >
-                                {status.label}
-                              </span>
+                              {isActive && <span className="absolute top-3 right-3 w-2 h-2 rounded-full bg-indigo-500" />}
+                              <div className="flex items-center gap-2 mb-1.5">
+                                <span className="font-black text-zinc-900 text-sm uppercase tracking-tight">{z.name}</span>
+                                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full ${z.type === "seated" ? "bg-indigo-100 text-indigo-600" : "bg-zinc-100 text-zinc-500"}`}>
+                                  {z.type}
+                                </span>
+                              </div>
+                              <div className="text-xl font-black text-indigo-600 font-mono leading-none">฿{z.price.toLocaleString()}</div>
+                              <div className={`text-[9px] font-black uppercase mt-1.5 ${status.color}`}>{status.label}</div>
                             </button>
                           );
                         })}
                       </div>
-                    </CardHeader>
+                    </div>
+                  )}
+
+                  {/* ── Seat Map Card ─────────────────────────────── */}
+                  <Card className="rounded-[32px] overflow-hidden border-none shadow-2xl bg-white">
+                    <div className="flex items-center gap-2 px-6 pt-5 pb-2">
+                      <Armchair size={16} className="text-indigo-600" />
+                      <span className="font-black text-sm uppercase italic text-zinc-700 tracking-tight">{selectedZone}</span>
+                    </div>
                     <CardContent className="p-0 bg-zinc-950">
                       {isSeated ? (
-                        <div className="p-8">
-                          <div className="flex justify-center gap-6 mb-8 text-[10px] font-black uppercase tracking-widest text-zinc-500">
-                            <span className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-zinc-800 rounded-sm" />{" "}
-                              Available
-                            </span>
-                            <span className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-indigo-500 rounded-sm" />{" "}
-                              Selected
-                            </span>
-                            <span className="flex items-center gap-2">
-                              <div className="w-3 h-3 bg-zinc-700 opacity-40 rounded-sm" />{" "}
-                              Occupied
-                            </span>
-                          </div>
-                          <div className="flex justify-center overflow-x-auto pb-4">
-                            <SeatMap
-                              rows={selectedZoneDetails?.rows || 0}
-                              seatsPerRow={
-                                selectedZoneDetails?.seatsPerRow || 0
-                              }
-                              takenSeats={takenSeats}
-                              selectedSeats={selectedSeats}
-                              onSeatClick={handleSeatClick}
-                              selectedZone={selectedZone}
-                              price={selectedZoneDetails?.price || 0}
-                            />
-                          </div>
-                          <div className="mt-10 py-3 bg-zinc-900 text-center text-[10px] text-zinc-700 tracking-[2em] font-black rounded-xl border border-white/5 uppercase">
-                            STAGE
-                          </div>
-                        </div>
+                        <SeatMap
+                          rows={selectedZoneDetails?.rows || 0}
+                          seatsPerRow={selectedZoneDetails?.seatsPerRow || 0}
+                          takenSeats={takenSeats}
+                          selectedSeats={selectedSeats}
+                          onSeatClick={handleSeatClick}
+                          selectedZone={selectedZone}
+                          price={selectedZoneDetails?.price || 0}
+                        />
                       ) : (
                         <div className="py-24 text-center">
                           <Users

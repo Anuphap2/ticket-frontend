@@ -10,8 +10,8 @@ import {
   useElements,
 } from "@stripe/react-stripe-js";
 import { bookingService } from "@/services/bookingService";
+import { paymentService } from "@/services/paymentService";
 import { Booking } from "@/types";
-import api from "@/lib/axios";
 import {
   Card,
   CardHeader,
@@ -21,6 +21,7 @@ import {
 } from "@/components/ui";
 import toast from "react-hot-toast";
 import { Timer, ShieldCheck, CreditCard, Loader2 } from "lucide-react";
+import { ROUTES } from "@/lib/constants";
 
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -49,7 +50,7 @@ function CheckoutForm({
 
     setIsLoading(true);
 
-    // 1. Initial Validation
+    // Step 1: Validate the form fields
     const { error: submitError } = await elements.submit();
     if (submitError) {
       setMessage(submitError.message || "Please check your card details.");
@@ -57,29 +58,24 @@ function CheckoutForm({
       return;
     }
 
-    // 2. Confirm Payment with 'if_required' to prevent unwanted new tabs
+    // Step 2: Confirm payment — Stripe will redirect to return_url on success.
+    // The paymentIntent variable does NOT exist here; Stripe handles success via redirect.
     const { error } = await stripe.confirmPayment({
       elements,
       confirmParams: {
-        return_url: `${window.location.origin}/bookings/${bookingId}/success`,
-      }
+        return_url: `${window.location.origin}${ROUTES.bookingSuccess(bookingId)}`,
+      },
     });
 
+    // Only runs if confirmPayment throws (card declined, validation, etc.)
     if (error) {
       if (error.type === "card_error" || error.type === "validation_error") {
         setMessage(error.message || "Payment failed.");
       } else {
         setMessage("An unexpected error occurred. Please try again.");
       }
-      setIsLoading(false);
-    } else if (paymentIntent && paymentIntent.status === "succeeded") {
-      // Handle successful payment manually in the same tab
-      toast.success("Payment successful!");
-      router.push(`/bookings/${bookingId}/success`);
-    } else {
-      // Failsafe for processing state
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
   return (
@@ -188,11 +184,11 @@ export default function PaymentPage() {
         setBooking(foundBooking);
         setTimeLeft(remaining);
 
-        const res = await api.post("/payments/create-intent", {
-          amount: foundBooking.totalPrice,
-          bookingId: foundBooking._id,
-        });
-        setClientSecret(res.data.clientSecret);
+        const res = await paymentService.createIntent(
+          foundBooking._id,
+          foundBooking.totalPrice,
+        );
+        setClientSecret(res.clientSecret);
       } catch (error) {
         toast.error("Failed to load payment data");
       }
@@ -240,11 +236,10 @@ export default function PaymentPage() {
           ) : (
             <div className="py-16 px-6 max-w-xl mx-auto space-y-8">
               <div
-                className={`p-6 rounded-[32px] border-2 transition-all flex items-center justify-between shadow-sm ${
-                  timeLeft < 120
+                className={`p-6 rounded-[32px] border-2 transition-all flex items-center justify-between shadow-sm ${timeLeft < 120
                     ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse"
                     : "bg-white border-zinc-100 text-zinc-900"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-4">
                   <div

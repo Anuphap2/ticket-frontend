@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useGSAP } from "@gsap/react";
@@ -8,17 +8,13 @@ import { useEvents } from "@/hooks/useEvents";
 import { HeroSection } from "@/components/HeroSection";
 import { EventCard } from "@/components/EventCard";
 
-
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
 export default function HomePage() {
-  const { events, loading: isLoading, fetchEvents } = useEvents();
-
-  useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+  // SWR auto-fetches on mount — no useEffect needed here
+  const { events, loading: isLoading } = useEvents();
 
   const activeEvents = useMemo(() => {
     const now = new Date();

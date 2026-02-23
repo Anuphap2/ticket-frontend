@@ -1,42 +1,41 @@
-import api from "@/lib/axios";
-import { User } from "@/types";
+import api from '@/lib/axios';
+import { User, LoginDto, RegisterDto } from '@/types';
+import { API_PATHS } from '@/lib/constants';
 
-export interface AuthResponse {
+export interface AuthTokens {
   access_token: string;
   refresh_token: string;
 }
 
 export const authService = {
-  login: async (data: any): Promise<AuthResponse> => {
-    const response = await api.post("/auth/signin", data);
+  login: async (data: LoginDto): Promise<AuthTokens> => {
+    const response = await api.post(API_PATHS.auth.signin, data);
     return response.data;
   },
 
-  register: async (data: any): Promise<AuthResponse> => {
-    const response = await api.post("/auth/signup", data);
+  register: async (data: RegisterDto): Promise<AuthTokens> => {
+    const response = await api.post(API_PATHS.auth.signup, data);
     return response.data;
   },
 
   getProfile: async (token?: string): Promise<User> => {
-    // ถ้ามีการส่ง token มา ให้แนบ Header ไปด้วย แต่ถ้าไม่ส่ง ให้ส่ง config เปล่าๆ ไป
     const config = token
       ? { headers: { Authorization: `Bearer ${token}` } }
       : {};
-    const response = await api.get("/auth/profile", config);
+    const response = await api.get(API_PATHS.auth.profile, config);
     return response.data;
   },
 
   updateProfile: async (data: Partial<User>): Promise<User> => {
-    const response = await api.patch("/auth/profile", data);
+    const response = await api.patch(API_PATHS.auth.profile, data);
     return response.data;
   },
 
-  logout: async () => {
-    // API call if backend supports it, otherwise just client side
+  logout: async (): Promise<void> => {
     try {
-      await api.get("/auth/logout");
-    } catch (e) {
-      // ignore error on logout
+      await api.get(API_PATHS.auth.logout);
+    } catch {
+      // Logout errors are non-fatal — local state is cleared regardless
     }
   },
 };

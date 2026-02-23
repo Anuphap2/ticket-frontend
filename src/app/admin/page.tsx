@@ -364,20 +364,20 @@ export default function AdminDashboard() {
                               {event.zones?.map((zone) => {
                                 const zoneSold = Array.isArray(bookings)
                                   ? bookings
-                                      .filter(
-                                        (b) =>
-                                          (typeof b.eventId === "object"
-                                            ? b.eventId?._id
-                                            : b.eventId) === event._id &&
-                                          b.zoneName === zone.name &&
-                                          b.status?.toLowerCase() ===
-                                            "confirmed",
-                                      )
-                                      .reduce(
-                                        (sum, b) =>
-                                          sum + (Number(b.quantity) || 0),
-                                        0,
-                                      )
+                                    .filter(
+                                      (b) =>
+                                        (typeof b.eventId === "object"
+                                          ? b.eventId?._id
+                                          : b.eventId) === event._id &&
+                                        b.zoneName === zone.name &&
+                                        b.status?.toLowerCase() ===
+                                        "confirmed",
+                                    )
+                                    .reduce(
+                                      (sum, b) =>
+                                        sum + (Number(b.quantity) || 0),
+                                      0,
+                                    )
                                   : 0;
 
                                 const zoneRevenue =

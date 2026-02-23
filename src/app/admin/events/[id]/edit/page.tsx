@@ -155,6 +155,8 @@ export default function EditEventPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // Keep the real server URL separate so we never accidentally send a blob URL
+  const [originalImageUrl, setOriginalImageUrl] = useState<string>("");
 
   const { updateEvent, fetchEvent, currentEvent } = useEvents();
 
@@ -197,6 +199,8 @@ export default function EditEventPage() {
       const formattedDate = currentEvent.date
         ? new Date(currentEvent.date).toISOString().slice(0, 16)
         : "";
+      // Store the real server URL before resetting form
+      setOriginalImageUrl(currentEvent.imageUrl);
       reset({
         ...currentEvent,
         date: formattedDate,
@@ -232,10 +236,27 @@ export default function EditEventPage() {
     const eventId = Array.isArray(id) ? id[0] : id;
 
     try {
-      let finalImageUrl = data.imageUrl;
+      // 🔒 Triple-safe image URL resolution:
+      // 1. If user picked a new file, upload it
+      // 2. Else use originalImageUrl (captured on load)
+      // 3. Else use data.imageUrl (form value, set by reset({...currentEvent}))
+      // 4. If still empty, omit imageUrl from payload → backend keeps old value
+      // 🐛 DEBUG — remove after fix confirmed
+      console.log("[EditEvent] submit debug:", {
+        selectedFile,
+        originalImageUrl,
+        currentEventImageUrl: (currentEvent as any)?.imageUrl,
+        formDataImageUrl: data.imageUrl,
+      });
+
+      let finalImageUrl: string;
       if (selectedFile) {
         finalImageUrl = await uploadService.uploadImage(selectedFile, eventId);
+      } else {
+        finalImageUrl = (currentEvent as any)?.imageUrl || originalImageUrl || "";
       }
+
+      console.log("[EditEvent] finalImageUrl =", finalImageUrl);
 
       // 🔍 ตรวจสอบการเปลี่ยนโครงสร้างที่นั่ง
       let seats = undefined;
@@ -268,10 +289,13 @@ export default function EditEventPage() {
         }
       }
 
+      // Strip imageUrl from form data — we control it explicitly below
+      const { imageUrl: _formImageUrl, ...restData } = data;
+
       const formattedData = {
-        ...data,
+        ...restData,
         date: new Date(data.date).toISOString(),
-        imageUrl: finalImageUrl,
+        imageUrl: finalImageUrl, // always send: new URL or original URL
         zones: data.zones.map((z: any) => ({
           ...z,
           price: Number(z.price),
@@ -280,7 +304,7 @@ export default function EditEventPage() {
         })),
         seats,
       };
-
+      console.log("Payload:", formattedData);
       if (await updateEvent(eventId!, formattedData)) {
         toast.success("อัปเดตงานสำเร็จแล้ว!");
         router.push("/admin");
@@ -326,27 +350,57 @@ export default function EditEventPage() {
           <Card className="border-none shadow-2xl rounded-[50px] overflow-hidden bg-white">
             <div className="h-4 bg-indigo-600 w-full" />
             <CardContent className="p-12 space-y-12">
-              <div className="relative group cursor-pointer h-96 rounded-[40px] border-2 border-dashed border-zinc-100 bg-zinc-50 overflow-hidden flex items-center justify-center transition-all hover:bg-zinc-100">
-                {imageUrlPreview ? (
-                  <img
-                    src={imageUrlPreview}
-                    className="w-full h-full object-cover"
-                    alt="Banner"
-                  />
-                ) : (
-                  <div className="text-center space-y-2">
-                    <Upload size={40} className="mx-auto text-indigo-600" />
-                    <p className="font-black text-zinc-300 text-[10px] tracking-widest">
-                      CHANGE BANNER
-                    </p>
+              {/* Image Upload — shows existing image and lets user replace */}
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
+                  Event Banner
+                  {originalImageUrl && !selectedFile && (
+                    <span className="ml-2 text-emerald-600 normal-case font-semibold text-[9px]">
+                      ✓ current image saved
+                    </span>
+                  )}
+                  {selectedFile && (
+                    <span className="ml-2 text-indigo-600 normal-case font-semibold text-[9px]">
+                      ✓ new image selected
+                    </span>
+                  )}
+                </label>
+                <div className="relative group cursor-pointer h-96 rounded-[40px] border-2 border-dashed border-zinc-100 bg-zinc-50 overflow-hidden flex items-center justify-center transition-all">
+                  {imageUrlPreview ? (
+                    <img
+                      src={imageUrlPreview}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      alt="Banner"
+                    />
+                  ) : (
+                    <div className="text-center space-y-2">
+                      <Upload size={40} className="mx-auto text-indigo-600" />
+                      <p className="font-black text-zinc-300 text-[10px] tracking-widest">
+                        UPLOAD BANNER
+                      </p>
+                    </div>
+                  )}
+                  {/* Hover overlay */}
+                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <div className="bg-white/90 rounded-2xl px-6 py-3 flex items-center gap-3 shadow-lg">
+                      <Upload size={18} className="text-zinc-700" />
+                      <span className="text-xs font-black text-zinc-800 uppercase tracking-widest">
+                        Click to change image
+                      </span>
+                    </div>
+                    {originalImageUrl && !selectedFile && (
+                      <p className="text-white/70 text-[10px] mt-3 font-medium">
+                        Leave unchanged to keep existing image
+                      </p>
+                    )}
                   </div>
-                )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-10">
