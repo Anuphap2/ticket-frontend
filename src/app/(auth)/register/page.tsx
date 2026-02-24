@@ -176,7 +176,7 @@ export default function RegisterPage() {
                   />
                   <Input
                     label="National ID"
-                    type="password"
+                    type="text"
                     error={errors.nationalId?.message}
                     {...register("nationalId")}
                   />
