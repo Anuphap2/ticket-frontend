@@ -1,0 +1,45 @@
+import api from '@/lib/axios';
+export const uploadService = {
+    
+    // 1. เพิ่ม parameter eventId เข้ามาตรงนี้ (ใส่ ? ไว้เพื่อให้ใช้ได้ทั้งตอนสร้างใหม่และแก้ไข)
+    uploadImage: async (file: File, eventId?: string): Promise<string> => {
+        if (!file) throw new Error('No file selected');
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const token = localStorage.getItem('accessToken');
+        if (!token) {
+            throw new Error('No access token found. Please login again.');
+        }
+
+        const baseURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+
+        // 2. *** จุดสำคัญ *** ต่อ Query String ถ้ามี eventId ส่งมา
+        const url = eventId
+            ? `${baseURL}/events/upload?eventId=${eventId}`
+            : `${baseURL}/events/upload`;
+
+        try {
+            const response = await api.post(url, formData, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+
+            // Handle wrapped response from TransformInterceptor
+            // Backend returns: { success: true, data: { url: "..." } }
+            // Axios response.data is the whole object.
+            const responseData = response.data;
+            if (responseData.data && responseData.data.url) {
+                return responseData.data.url;
+            }
+            // Fallback for non-wrapped or direct structure (just in case)
+            return responseData.url || '';
+        } catch (error: any) {
+
+            throw error;
+        }
+    },
+};

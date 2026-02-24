@@ -1,224 +1,476 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { jwtDecode } from "jwt-decode";
-import api from "@/lib/axios";
+
+import React, { useMemo, useState } from "react";
+import Link from "next/link";
+import { format } from "date-fns";
+import { useEvents } from "@/hooks/useEvents";
+import { useBookings } from "@/hooks/useBookings";
+import { Button, Card } from "@/components/ui";
+import { StatsCard } from "@/components/StatsCard";
+import toast from "react-hot-toast";
 import {
-  LayoutDashboard,
-  PlusCircle,
-  Ticket,
-  Users,
-  TrendingUp,
-  Settings,
-  Pencil,
+  Calendar,
+  Edit,
   Trash2,
+  Plus,
+  Ticket,
+  TrendingUp,
+  Users,
+  Power,
+  Loader2,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-import LogoutButton from "@/components/logout/page";
 
 export default function AdminDashboard() {
-  const router = useRouter();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [events, setEvents] = useState([]); // เก็บรายการอีเวนต์
+  // 🎯 แก้ไข: เอาคำว่า true ออกแล้ว เพื่อไม่ให้ Type Error ฟ้อง
+  const {
+    events = [],
+    loading: eventsLoading,
+    deleteEvent,
+    updateEvent,
+  } = useEvents();
 
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    if (!token) {
-      router.push("/login");
-      return;
-    }
+  const { bookings = [], loading: bookingsLoading } = useBookings();
 
-    try {
-      const decoded: any = jwtDecode(token);
-      if (decoded.role !== "admin") {
-        alert("คุณไม่มีสิทธิ์เข้าถึงหน้านี้");
-        router.push("/home");
-      } else {
-        setIsAdmin(true);
-        fetchEvents(); // โหลดข้อมูลเมื่อยืนยันว่าเป็น Admin
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [currentFilter, setCurrentFilter] = useState<
+    "all" | "active" | "inactive"
+  >("all");
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  // 🎯 State สำหรับกางดูโซน
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const loading = eventsLoading || bookingsLoading;
+
+  const stats = useMemo(() => {
+    const safeEvents = Array.isArray(events) ? events : [];
+    const safeBookings = Array.isArray(bookings) ? bookings : [];
+
+    const targetEvents = selectedEventId
+      ? safeEvents.filter((e) => e._id === selectedEventId)
+      : safeEvents;
+
+    let totalCapacity = 0;
+    let ticketsSold = 0;
+    let estimatedRevenue = 0;
+
+    targetEvents.forEach((event) => {
+      event.zones?.forEach((zone) => {
+        totalCapacity += Number(zone.totalSeats) || 0;
+      });
+    });
+
+    safeBookings.forEach((b) => {
+      if (b.status?.toLowerCase() === "confirmed") {
+        const bEventId = (
+          typeof b.eventId === "object" ? b.eventId?._id : b.eventId
+        )?.toString();
+        if (!selectedEventId || bEventId === selectedEventId) {
+          const qty = Number(b.quantity) || 0;
+          let price = Number(b.price) || 0;
+          if (price === 0) {
+            const targetEvent = safeEvents.find(
+              (e) => e._id.toString() === bEventId,
+            );
+            const targetZone = targetEvent?.zones?.find(
+              (z) => z.name === b.zoneName,
+            );
+            price = Number(targetZone?.price) || 0;
+          }
+          ticketsSold += qty;
+          estimatedRevenue += qty * price;
+        }
       }
-    } catch (error) {
-      router.push("/login");
-    }
-  }, [router]);
+    });
 
-  const fetchEvents = async () => {
+    return {
+      totalEvents: targetEvents.length,
+      totalCapacity,
+      ticketsSold,
+      estimatedRevenue,
+    };
+  }, [events, bookings, selectedEventId]);
+
+  const filteredEvents = useMemo(() => {
+    if (currentFilter === "all") return events;
+    return events.filter((e) => e.status === currentFilter);
+  }, [events, currentFilter]);
+
+  const handleToggleStatus = async (event: any) => {
+    setTogglingId(event._id);
+    const newStatus = event.status === "active" ? "inactive" : "active";
     try {
-      const res = await api.get("/events");
-      setEvents(res.data);
+      await updateEvent(event._id, { status: newStatus });
+      toast.success(`Set to ${newStatus.toUpperCase()}`);
     } catch (err) {
-      console.error("Fetch failed");
+      toast.error("Status update failed");
+    } finally {
+      setTogglingId(null);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("พู่กันแน่ใจนะว่าจะลบงานนี้? ข้อมูลหายถาวรนะ!")) {
-      try {
-        await api.delete(`/events/${id}`);
-        setEvents(events.filter((e: any) => e._id !== id));
-      } catch (err) {
-        alert("ลบไม่สำเร็จ!");
-      }
-    }
-  };
-
-  if (!isAdmin) return null;
+  if (loading && events.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
-      {/* --- Sidebar --- */}
-      <aside className="w-64 bg-white border-r hidden md:flex flex-col sticky top-0 h-screen">
-        <div className="p-6 flex items-center gap-2 font-bold text-xl text-indigo-600 border-b">
-          <Ticket size={24} />
-          <span>TicketAdmin</span>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-2">
-          <button className="flex items-center gap-3 w-full p-3 bg-indigo-50 text-indigo-600 rounded-xl font-medium">
-            <LayoutDashboard size={20} /> แดชบอร์ด
-          </button>
-          <button
-            onClick={() => router.push("/admin/events/create")}
-            className="flex items-center gap-3 w-full p-3 text-slate-600 hover:bg-slate-50 rounded-xl transition"
-          >
-            <PlusCircle size={20} /> เพิ่มอีเวนต์
-          </button>
-          <button className="flex items-center gap-3 w-full p-3 text-slate-600 hover:bg-slate-50 rounded-xl transition">
-            <Users size={20} /> รายชื่อผู้ใช้งาน
-          </button>
-          <button className="flex items-center gap-3 w-full p-3 text-slate-600 hover:bg-slate-50 rounded-xl transition">
-            <Settings size={20} /> ตั้งค่าระบบ
-          </button>
-        </nav>
-
-        <div className="p-4 border-t">
-          <LogoutButton />
-        </div>
-      </aside>
-
-      {/* --- Main Content --- */}
-      <main className="flex-1 p-8">
-        <header className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800">
-              แดชบอร์ดผู้ดูแลระบบ
-            </h1>
-            <p className="text-slate-500">
-              สวัสดีคุณพู่กัน, นี่คือภาพรวมระบบวันนี้
-            </p>
-          </div>
-        </header>
-
-        {/* --- Stats Grid --- */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-200">
-            <div className="w-12 h-12 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-              <TrendingUp size={24} />
-            </div>
-            <p className="text-slate-500 text-sm font-medium">รายได้ทั้งหมด</p>
-            <h3 className="text-2xl font-bold text-slate-800">฿450,200</h3>
-          </div>
-
-          <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-200">
-            <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-4">
-              <Ticket size={24} />
-            </div>
-            <p className="text-slate-500 text-sm font-medium">ตั๋วที่ขายได้</p>
-            <h3 className="text-2xl font-bold text-slate-800">
-              {events.length > 0 ? "1,240" : "0"} ใบ
-            </h3>
-          </div>
-
-          <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-200">
-            <div className="w-12 h-12 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center mb-4">
-              <Users size={24} />
-            </div>
-            <p className="text-slate-500 text-sm font-medium">จำนวนสมาชิก</p>
-            <h3 className="text-2xl font-bold text-slate-800">850 คน</h3>
-          </div>
-        </div>
-
-        {/* --- Quick Actions --- */}
-        <div className="bg-indigo-600 rounded-3xl p-8 text-white flex justify-between items-center shadow-lg shadow-indigo-200 mb-10">
-          <div>
-            <h2 className="text-xl font-bold mb-2">
-              เริ่มสร้างความสนุกให้แฟนคลับ!
+    <div className="space-y-8 p-8 bg-zinc-50/50 min-h-screen antialiased">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div>
+          <div className="flex items-center gap-3">
+            <h2 className="text-4xl font-black text-zinc-900 tracking-tighter italic uppercase">
+              Dashboard
             </h2>
-            <p className="text-indigo-100">
-              เพิ่มคอนเสิร์ตหรืออีเวนต์ใหม่ลงในระบบเพื่อเริ่มขายตั๋ว
-            </p>
+            {selectedEventId && (
+              <Badge className="bg-indigo-600 text-white rounded-full px-4 animate-in slide-in-from-left-2">
+                Focus Mode
+              </Badge>
+            )}
           </div>
-          <button
-            onClick={() => router.push("/admin/events/create")}
-            className="px-6 py-3 bg-white text-indigo-600 font-bold rounded-2xl hover:bg-indigo-50 transition shadow-md whitespace-nowrap"
-          >
-            สร้างอีเวนต์เลย
-          </button>
+          <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.2em] mt-1">
+            {selectedEventId
+              ? "Analyzing Selected Concert"
+              : "Global Network Performance"}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/bookings">
+            <Button
+              variant="outline"
+              className="rounded-2xl bg-white font-black text-[10px] px-6 h-12 uppercase"
+            >
+              <Ticket size={14} className="mr-2" /> Bookings
+            </Button>
+          </Link>
+
+          <Link href="/admin/events/create">
+            <Button className="rounded-2xl bg-zinc-900 hover:bg-black text-white font-black text-[10px] px-6 h-12 uppercase">
+              <Plus size={14} className="mr-2" /> New Event
+            </Button>
+          </Link>
+
+          <Link href="/admin/users">
+            <Button className="rounded-2xl bg-zinc-900 hover:bg-black text-white font-black text-[10px] px-6 h-12 uppercase">
+              <Users size={14} className="mr-2" /> Users
+            </Button>
+          </Link>
+        </div>
+      </header>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 relative">
+        <StatsCard
+          title={selectedEventId ? "Focused Event" : "Total Events"}
+          value={stats.totalEvents}
+          icon={Calendar}
+          description="Campaign scope"
+        />
+        <StatsCard
+          title="Revenue"
+          value={`฿${stats.estimatedRevenue.toLocaleString()}`}
+          icon={TrendingUp}
+          description="Net earnings"
+        />
+        <StatsCard
+          title="Tickets Sold"
+          value={stats.ticketsSold}
+          icon={Ticket}
+          description="Active passes"
+        />
+        <StatsCard
+          title="Fill Rate"
+          value={`${stats.totalCapacity > 0 ? ((stats.ticketsSold / stats.totalCapacity) * 100).toFixed(1) : 0}%`}
+          icon={Users}
+          description="Occupancy"
+        />
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex bg-white p-1 rounded-2xl border border-zinc-200 w-fit shadow-sm">
+            <FilterTab
+              active={currentFilter === "all"}
+              label="All"
+              count={events.length}
+              onClick={() => setCurrentFilter("all")}
+            />
+            <FilterTab
+              active={currentFilter === "active"}
+              label="Active"
+              count={events.filter((e) => e.status === "active").length}
+              onClick={() => setCurrentFilter("active")}
+            />
+            <FilterTab
+              active={currentFilter === "inactive"}
+              label="Inactive"
+              count={events.filter((e) => e.status === "inactive").length}
+              onClick={() => setCurrentFilter("inactive")}
+            />
+          </div>
+          {selectedEventId && (
+            <button
+              onClick={() => setSelectedEventId(null)}
+              className="flex items-center gap-2 text-rose-500 font-black text-[10px] uppercase tracking-widest hover:bg-rose-50 px-4 py-2 rounded-xl transition-all"
+            >
+              <XCircle size={16} /> Reset Stats View
+            </button>
+          )}
         </div>
 
-        {/* --- Manage Events Table --- */}
-        <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b">
-            <h2 className="text-xl font-bold text-slate-800">
-              จัดการรายการคอนเสิร์ต
-            </h2>
-          </div>
+        <Card className="border-none shadow-[0_30px_100px_rgba(0,0,0,0.04)] overflow-hidden rounded-[2.5rem] bg-white">
           <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50 text-slate-500 text-sm">
-                <tr>
-                  <th className="px-6 py-4 font-semibold">ชื่อคอนเสิร์ต</th>
-                  <th className="px-6 py-4 font-semibold">สถานที่</th>
-                  <th className="px-6 py-4 font-semibold">วันที่</th>
-                  <th className="px-6 py-4 font-semibold text-center">
-                    จัดการ
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-100 bg-zinc-50/30">
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 w-10"></th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                    Event Detail
+                  </th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-center">
+                    Status
+                  </th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                    Total Sales
+                  </th>
+                  <th className="px-8 py-6 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 text-right">
+                    Actions
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
-                {events.map((event: any) => (
-                  <tr key={event._id} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-4 font-bold text-slate-700">
-                      {event.title}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {event.location}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">
-                      {new Date(event.date).toLocaleDateString("th-TH")}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() =>
-                            router.push(`/admin/events/edit/${event._id}`)
-                          }
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          title="แก้ไข"
+              <tbody className="divide-y divide-zinc-50">
+                {filteredEvents.map((event) => {
+                  const totalSeats =
+                    event.zones?.reduce((acc, z) => acc + z.totalSeats, 0) || 0;
+                  const availSeats =
+                    event.zones?.reduce(
+                      (acc, z) => acc + z.availableSeats,
+                      0,
+                    ) || 0;
+                  const soldCount = totalSeats - availSeats;
+                  const soldPercent =
+                    totalSeats > 0
+                      ? Math.round((soldCount / totalSeats) * 100)
+                      : 0;
+                  const isActive = event.status === "active";
+                  const isSelected = selectedEventId === event._id;
+                  const isExpanded = expandedId === event._id;
+
+                  return (
+                    <React.Fragment key={event._id}>
+                      <tr
+                        onClick={() => setSelectedEventId(event._id)}
+                        className={`group cursor-pointer transition-all ${isSelected ? "bg-indigo-50/50" : !isActive ? "bg-zinc-50/50 opacity-70" : "hover:bg-zinc-50/30"}`}
+                      >
+                        <td
+                          className="px-8 py-6"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedId(isExpanded ? null : event._id);
+                          }}
                         >
-                          <Pencil size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(event._id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                          title="ลบ"
+                          {isExpanded ? (
+                            <ChevronUp size={16} className="text-indigo-600" />
+                          ) : (
+                            <ChevronDown size={16} className="text-zinc-400" />
+                          )}
+                        </td>
+                        <td className="px-8 py-6">
+                          <div
+                            className={`font-black text-lg tracking-tight uppercase italic leading-none ${isSelected ? "text-indigo-600" : isActive ? "text-zinc-900" : "text-zinc-400"}`}
+                          >
+                            {event.title}
+                          </div>
+                          <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-2">
+                            {event.location} •{" "}
+                            {event.date
+                              ? format(new Date(event.date), "dd MMM HH:mm")
+                              : "-"}
+                          </div>
+                        </td>
+                        <td
+                          className="px-8 py-6 text-center"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <button
+                            onClick={() => handleToggleStatus(event)}
+                            disabled={togglingId === event._id}
+                            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isActive ? "bg-emerald-50 text-emerald-600" : "bg-zinc-200 text-zinc-500"}`}
+                          >
+                            {togglingId === event._id ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : (
+                              <Power size={12} />
+                            )}
+                            {isActive ? "Selling" : "Paused"}
+                          </button>
+                        </td>
+                        <td className="px-8 py-6 w-72">
+                          <div className="flex justify-between text-[10px] mb-2 font-black uppercase">
+                            <span
+                              className={
+                                isActive ? "text-indigo-600" : "text-zinc-400"
+                              }
+                            >
+                              {soldPercent}% Booked
+                            </span>
+                            <span className="text-zinc-400">
+                              {soldCount}/{totalSeats}
+                            </span>
+                          </div>
+                          <div className="w-full bg-zinc-100 h-2 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full transition-all duration-1000 ${isActive ? "bg-indigo-600" : "bg-zinc-300"}`}
+                              style={{ width: `${soldPercent}%` }}
+                            />
+                          </div>
+                        </td>
+                        <td
+                          className="px-8 py-6 text-right"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex justify-end gap-2">
+                            <Link href={`/admin/events/${event._id}/edit`}>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-10 w-10 rounded-xl bg-zinc-50 hover:bg-white border border-zinc-100"
+                              >
+                                <Edit size={16} className="text-zinc-600" />
+                              </Button>
+                            </Link>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-10 w-10 rounded-xl bg-rose-50 hover:bg-rose-500 hover:text-white border border-rose-100"
+                              onClick={() => deleteEvent(event._id)}
+                            >
+                              <Trash2 size={16} />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+
+                      {/* 🎯 Zone Breakdown Section */}
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={5} className="bg-zinc-50/80 px-16 py-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                              {event.zones?.map((zone) => {
+                                const zoneSold = Array.isArray(bookings)
+                                  ? bookings
+                                    .filter(
+                                      (b) =>
+                                        (typeof b.eventId === "object"
+                                          ? b.eventId?._id
+                                          : b.eventId) === event._id &&
+                                        b.zoneName === zone.name &&
+                                        b.status?.toLowerCase() ===
+                                        "confirmed",
+                                    )
+                                    .reduce(
+                                      (sum, b) =>
+                                        sum + (Number(b.quantity) || 0),
+                                      0,
+                                    )
+                                  : 0;
+
+                                const zoneRevenue =
+                                  zoneSold * (Number(zone.price) || 0);
+
+                                return (
+                                  <div
+                                    key={zone.name}
+                                    className="bg-white p-6 rounded-[2rem] border border-zinc-200/50 shadow-sm flex flex-col gap-3"
+                                  >
+                                    <div className="flex justify-between items-start">
+                                      <div>
+                                        <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">
+                                          Zone
+                                        </span>
+                                        <h4 className="text-xl font-black italic uppercase text-zinc-800">
+                                          {zone.name}
+                                        </h4>
+                                      </div>
+                                      <Badge className="bg-zinc-100 text-zinc-500 border-none font-black text-[9px]">
+                                        ฿{zone.price.toLocaleString()}
+                                      </Badge>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-zinc-50">
+                                      <div>
+                                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">
+                                          Tickets Sold
+                                        </p>
+                                        <p className="text-lg font-black text-zinc-900">
+                                          {zoneSold}{" "}
+                                          <span className="text-xs text-zinc-400">
+                                            / {zone.totalSeats}
+                                          </span>
+                                        </p>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">
+                                          Zone Revenue
+                                        </p>
+                                        <p className="text-lg font-black text-emerald-600">
+                                          ฿{zoneRevenue.toLocaleString()}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="w-full bg-zinc-100 h-1 rounded-full overflow-hidden mt-1">
+                                      <div
+                                        className="h-full bg-indigo-500"
+                                        style={{
+                                          width: `${(zoneSold / zone.totalSeats) * 100}%`,
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
-            {events.length === 0 && (
-              <div className="p-20 text-center text-slate-400">
-                <Ticket size={48} className="mx-auto mb-4 opacity-20" />
-                <p>ยังไม่มีรายการคอนเสิร์ตในระบบ</p>
-              </div>
-            )}
           </div>
-        </div>
-      </main>
+        </Card>
+      </div>
     </div>
+  );
+}
+
+function FilterTab({ active, label, count, onClick }: any) {
+  return (
+    <button
+      onClick={onClick}
+      className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${active ? "bg-zinc-900 text-white shadow-lg" : "text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50"}`}
+    >
+      {label}{" "}
+      <span
+        className={`px-1.5 py-0.5 rounded-md text-[8px] ${active ? "bg-white/20 text-white" : "bg-zinc-100 text-zinc-400"}`}
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+function Badge({ children, className }: any) {
+  return (
+    <span
+      className={`text-[10px] font-black uppercase tracking-widest py-1 px-3 rounded-full ${className}`}
+    >
+      {children}
+    </span>
   );
 }
