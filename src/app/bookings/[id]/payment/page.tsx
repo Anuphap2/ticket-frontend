@@ -20,12 +20,8 @@ import {
   Badge,
 } from "@/components/ui";
 import toast from "react-hot-toast";
-import { Timer, ShieldCheck, CreditCard, Loader2 } from "lucide-react";
+import { Timer, CreditCard, Loader2 } from "lucide-react";
 import { ROUTES } from "@/lib/constants";
-
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ScrollSmoother } from "gsap/ScrollSmoother";
 
 const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || "",
@@ -34,9 +30,11 @@ const stripePromise = loadStripe(
 function CheckoutForm({
   bookingId,
   amount,
+  timeLeft,
 }: {
   bookingId: string;
   amount: number;
+  timeLeft: number;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -46,7 +44,7 @@ function CheckoutForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!stripe || !elements || isLoading) return;
+    if (!stripe || !elements || isLoading || timeLeft <= 0) return;
 
     setIsLoading(true);
 
@@ -57,87 +55,87 @@ function CheckoutForm({
       return;
     }
 
-    const returnUrl = `${window.location.origin}${ROUTES.bookingSuccess(bookingId)}`;
+    const returnUrl = `${window.location.origin}${ROUTES.bookingSuccess(
+      bookingId,
+    )}`;
 
-    // แจ้ง Stripe ว่าไม่ต้อง Redirect อัตโนมัติ (ถ้าไม่จำเป็น)
     const { error, paymentIntent } = await stripe.confirmPayment({
       elements,
-      confirmParams: {
-        return_url: returnUrl,
-      },
-      redirect: "if_required", // <--- จุดสำคัญ
+      confirmParams: { return_url: returnUrl },
+      redirect: "if_required",
     });
 
     if (error) {
-      // กรณีบัตรไม่ผ่าน หรือข้อมูลผิดพลาด
-      if (error.type === "card_error" || error.type === "validation_error") {
-        setMessage(error.message || "Payment failed.");
-      } else {
-        setMessage("An unexpected error occurred. Please try again.");
-      }
+      setMessage(error.message || "Payment failed.");
       setIsLoading(false);
-    } else if (paymentIntent && paymentIntent.status === "succeeded") {
-      // กรณีจ่ายเงินสำเร็จ (ไม่ต้องผ่าน 3D Secure)
-      // เปิดแท็บใหม่ไปยังหน้า Success
-      window.open(returnUrl, "_blank");
-
-      // อัปเดตหน้าต่างปัจจุบันให้รู้ว่าจ่ายเสร็จแล้ว
-      setMessage("Payment successful! Your receipt has opened in a new tab.");
-      setIsLoading(false);
-
-      // คุณสามารถเพิ่ม router.push('/') ตรงนี้เพื่อพาแท็บเก่ากลับหน้าแรกได้
-      router.push("/");
+    } else if (paymentIntent?.status === "succeeded") {
+      setMessage("Payment successful! Redirecting...");
+      setTimeout(() => router.push(returnUrl), 1200);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8">
-      <div className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
-        <PaymentElement
-          id="payment-element"
-          options={{
-            layout: "tabs",
-            business: { name: "Pookan Tickets" },
-          }}
-        />
-      </div>
+    <>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="bg-white p-4 rounded-2xl border border-zinc-100 shadow-sm">
+          <PaymentElement
+            options={{
+              layout: "tabs",
+              business: { name: "Pookan Tickets" },
+            }}
+          />
+        </div>
 
-      {message && (
-        <div
-          className={`p-4 rounded-xl text-sm font-medium animate-in fade-in slide-in-from-top-2 ${
-            message.includes("successful")
-              ? "bg-emerald-50 text-emerald-600"
-              : "bg-red-50 text-red-600"
-          }`}
+        {message && (
+          <div
+            className={`p-4 rounded-xl text-sm font-medium ${
+              message.includes("successful")
+                ? "bg-emerald-50 text-emerald-600"
+                : "bg-red-50 text-red-600"
+            }`}
+          >
+            {message}
+          </div>
+        )}
+
+        <button
+          disabled={isLoading || !stripe || !elements || timeLeft <= 0}
+          className="w-full bg-indigo-600 text-white py-5 rounded-[28px] font-black text-xl 
+          hover:bg-indigo-700 disabled:bg-zinc-200 disabled:text-zinc-400 
+          transition-all active:scale-[0.98] shadow-2xl shadow-indigo-200 
+          flex items-center justify-center gap-3"
         >
-          {message}
+          {isLoading ? (
+            <>
+              <Loader2 className="animate-spin h-6 w-6" />
+              Processing...
+            </>
+          ) : (
+            <>
+              <CreditCard className="h-6 w-6" />
+              Pay ฿{amount.toLocaleString()}
+            </>
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="text-xs text-zinc-400 hover:text-zinc-900 underline w-full mt-4"
+        >
+          Cancel booking
+        </button>
+      </form>
+
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-2xl shadow-xl text-center">
+            <Loader2 className="animate-spin mx-auto mb-3" />
+            <p className="text-sm font-bold">Processing secure payment...</p>
+          </div>
         </div>
       )}
-
-      <button
-        disabled={isLoading || !stripe || !elements}
-        className="w-full bg-indigo-600 text-white py-5 rounded-[24px] font-black text-xl hover:bg-indigo-700 disabled:bg-zinc-200 disabled:text-zinc-400 transition-all active:scale-[0.98] shadow-2xl shadow-indigo-100 flex items-center justify-center gap-3"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="animate-spin h-6 w-6" />
-            Processing...
-          </>
-        ) : (
-          <>
-            <CreditCard className="h-6 w-6" />
-            Pay ฿{amount.toLocaleString()}
-          </>
-        )}
-      </button>
-
-      <div className="flex items-center justify-center gap-2 text-zinc-400">
-        <ShieldCheck size={14} />
-        <span className="text-[10px] font-bold uppercase tracking-widest">
-          Secure Encrypted Transaction
-        </span>
-      </div>
-    </form>
+    </>
   );
 }
 
@@ -148,44 +146,23 @@ export default function PaymentPage() {
   const [clientSecret, setClientSecret] = useState("");
   const [booking, setBooking] = useState<Booking | null>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
-
-  const main = useRef<HTMLDivElement | null>(null);
-  const smoother = useRef<ScrollSmoother | null>(null);
-
-  // Properly initialize GSAP inside useLayoutEffect
-  useLayoutEffect(() => {
-    gsap.registerPlugin(ScrollTrigger, ScrollSmoother);
-
-    const ctx = gsap.context(() => {
-      smoother.current = ScrollSmoother.create({
-        wrapper: "#smooth-wrapper",
-        content: "#smooth-content",
-        smooth: 1.8,
-        smoothTouch: 0.1,
-        effects: true,
-        normalizeScroll: true,
-      });
-    }, main);
-
-    return () => ctx.revert();
-  }, []);
+  const [initialTime, setInitialTime] = useState<number>(0);
 
   useEffect(() => {
     const initPayment = async () => {
       if (!id) return;
+
       try {
         const myBookings = await bookingService.getMyBookings();
-        const foundBooking = myBookings.find(
-          (b) => b._id.toString() === id.toString(),
-        );
+        const found = myBookings.find((b) => b._id === id);
 
-        if (!foundBooking) {
+        if (!found) {
           toast.error("Booking not found");
           router.push("/");
           return;
         }
 
-        const expireAt = new Date(foundBooking.expiresAt).getTime();
+        const expireAt = new Date(found.expiresAt).getTime();
         const remaining = Math.max(
           0,
           Math.floor((expireAt - Date.now()) / 1000),
@@ -193,46 +170,43 @@ export default function PaymentPage() {
 
         if (remaining <= 0) {
           toast.error("Payment time expired");
-          router.push(
-            `/events/${(foundBooking.eventId as any)._id || foundBooking.eventId}`,
-          );
+          router.push("/");
           return;
         }
 
-        setBooking(foundBooking);
+        setInitialTime(remaining);
         setTimeLeft(remaining);
+        setBooking(found);
 
         const res = await paymentService.createIntent(
-          foundBooking._id,
-          foundBooking.totalPrice,
+          found._id,
+          found.totalPrice,
         );
         setClientSecret(res.clientSecret);
-      } catch (error) {
+      } catch {
         toast.error("Failed to load payment data");
       }
     };
+
     initPayment();
   }, [id, router]);
 
   useEffect(() => {
-    if (timeLeft === null || timeLeft <= 0) return;
+    if (timeLeft === null) return;
+
+    if (timeLeft <= 0) {
+      toast.error("Payment time expired");
+      router.push("/");
+      return;
+    }
+
     const timer = setInterval(
       () => setTimeLeft((prev) => (prev ? prev - 1 : 0)),
       1000,
     );
-    return () => clearInterval(timer);
-  }, [timeLeft]);
 
-  useEffect(() => {
-    if (timeLeft === 0) {
-      toast.error("Time expired. Seats have been released.");
-      const eventId =
-        typeof booking?.eventId === "object"
-          ? (booking.eventId as any)._id
-          : booking?.eventId;
-      router.push(`/events/${eventId || ""}`);
-    }
-  }, [timeLeft, booking, router]);
+    return () => clearInterval(timer);
+  }, [timeLeft, router]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
@@ -240,132 +214,84 @@ export default function PaymentPage() {
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
+  const progress =
+    initialTime > 0 && timeLeft ? (timeLeft / initialTime) * 100 : 0;
+
+  if (!clientSecret || !booking || timeLeft === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-50">
+        <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
   return (
-    <div ref={main}>
-      <div id="smooth-wrapper" className="min-h-screen bg-zinc-50 antialiased">
-        <div id="smooth-content">
-          {!clientSecret || !booking || timeLeft === null ? (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4">
-              <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
-              <p className="font-black text-zinc-400 tracking-tighter italic">
-                INITIALIZING SECURE GATEWAY...
-              </p>
-            </div>
-          ) : (
-            <div className="py-16 px-6 max-w-xl mx-auto space-y-8">
-              <div
-                className={`p-6 rounded-[32px] border-2 transition-all flex items-center justify-between shadow-sm ${
-                  timeLeft < 120
-                    ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse"
-                    : "bg-white border-zinc-100 text-zinc-900"
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`p-3 rounded-2xl ${timeLeft < 120 ? "bg-rose-500 text-white" : "bg-zinc-100 text-zinc-500"}`}
-                  >
-                    <Timer size={24} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-none mb-1">
-                      Time Remaining
-                    </p>
-                    <p className="text-3xl font-black font-mono leading-none">
-                      {formatTime(timeLeft)}
-                    </p>
-                  </div>
-                </div>
-                {timeLeft < 120 && (
-                  <span className="text-[10px] font-black uppercase tracking-tighter">
-                    Hurry up!
-                  </span>
-                )}
-              </div>
-
-              <Card className="border-none shadow-[0_30px_80px_rgba(0,0,0,0.05)] rounded-[50px] overflow-hidden bg-white">
-                <CardHeader className="bg-zinc-950 p-10 text-white relative">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 blur-3xl" />
-                  <CardTitle className="text-3xl font-black italic tracking-tighter uppercase">
-                    Payment Details
-                  </CardTitle>
-                  <p className="text-zinc-500 text-xs font-bold tracking-widest uppercase mt-1">
-                    Complete your ticket purchase
+    <div className="min-h-screen bg-zinc-50 py-16 px-6">
+      <div className="max-w-xl mx-auto space-y-8">
+        <Card className="relative rounded-3xl shadow-2xl border-0 overflow-hidden">
+          {/* FLOATING TIMER */}
+          <div className="absolute top-6 right-6 z-20">
+            <div
+              className={`px-5 py-3 rounded-2xl border shadow-xl transition-all ${
+                timeLeft < 120
+                  ? "bg-rose-50 border-rose-200 text-rose-600 animate-pulse"
+                  : "bg-white border-zinc-200 text-zinc-900"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Timer
+                  className={timeLeft < 120 ? "text-rose-600" : "text-zinc-500"}
+                />
+                <div>
+                  <p className="text-[10px] uppercase font-bold opacity-60">
+                    Time Remaining
                   </p>
-                </CardHeader>
-
-                <CardContent className="p-10 space-y-10">
-                  <div className="space-y-6 bg-zinc-50/50 p-8 rounded-[35px] border border-zinc-100">
-                    <div className="flex justify-between items-start border-b border-zinc-100 pb-6">
-                      <div>
-                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                          Event
-                        </p>
-                        <p className="text-xl font-black text-zinc-900 leading-tight">
-                          {(booking.eventId as any).title}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                          Zone
-                        </p>
-                        <Badge className="bg-indigo-600 rounded-lg">
-                          {booking.zoneName}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">
-                        Selected Seats
-                      </p>
-                      <div className="flex flex-wrap gap-2 justify-end">
-                        {(booking.tickets as any[]).map((t) => (
-                          <span
-                            key={t._id}
-                            className="px-3 py-1.5 bg-white border border-zinc-200 text-zinc-900 rounded-xl text-xs font-black font-mono"
-                          >
-                            {t.seatNumber}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="pt-6 border-t border-dashed border-zinc-200 flex justify-between items-end">
-                      <span className="text-zinc-400 text-xs font-black uppercase tracking-widest mb-1">
-                        Total Due
-                      </span>
-                      <span className="text-5xl font-black text-indigo-600 font-mono tracking-tighter">
-                        ฿{booking.totalPrice?.toLocaleString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  <Elements
-                    stripe={stripePromise}
-                    options={{
-                      clientSecret,
-                      appearance: {
-                        theme: "stripe",
-                        variables: {
-                          colorPrimary: "#4f46e5",
-                          colorBackground: "#ffffff",
-                          colorText: "#18181b",
-                          borderRadius: "16px",
-                          fontFamily: "Inter, system-ui, sans-serif",
-                        },
-                      },
-                    }}
-                  >
-                    <CheckoutForm
-                      bookingId={booking._id}
-                      amount={booking.totalPrice}
-                    />
-                  </Elements>
-                </CardContent>
-              </Card>
+                  <p className="text-lg font-mono font-black">
+                    {formatTime(timeLeft)}
+                  </p>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+
+          {/* PROGRESS BAR */}
+          <div className="h-1 bg-zinc-100">
+            <div
+              className={`h-1 transition-all duration-1000 ${
+                timeLeft < 120 ? "bg-rose-500" : "bg-indigo-600"
+              }`}
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          <CardHeader>
+            <CardTitle className="text-2xl font-black">
+              Secure Payment
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent className="space-y-10">
+            <div className="space-y-2">
+              <p className="font-bold text-xl">
+                {(booking.eventId as any).title}
+              </p>
+              <Badge>{booking.zoneName}</Badge>
+            </div>
+
+            <div className="flex justify-between text-3xl font-black text-indigo-600 border-t pt-6">
+              <span>Total</span>
+              <span>฿{booking.totalPrice?.toLocaleString()}</span>
+            </div>
+
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <CheckoutForm
+                bookingId={booking._id}
+                amount={booking.totalPrice}
+                timeLeft={timeLeft}
+              />
+            </Elements>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

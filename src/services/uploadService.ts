@@ -1,6 +1,6 @@
-import axios from 'axios';
-
+import api from '@/lib/axios';
 export const uploadService = {
+    
     // 1. เพิ่ม parameter eventId เข้ามาตรงนี้ (ใส่ ? ไว้เพื่อให้ใช้ได้ทั้งตอนสร้างใหม่และแก้ไข)
     uploadImage: async (file: File, eventId?: string): Promise<string> => {
         if (!file) throw new Error('No file selected');
@@ -21,7 +21,7 @@ export const uploadService = {
             : `${baseURL}/events/upload`;
 
         try {
-            const response = await axios.post(url, formData, {
+            const response = await api.post(url, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'multipart/form-data',
@@ -38,17 +38,7 @@ export const uploadService = {
             // Fallback for non-wrapped or direct structure (just in case)
             return responseData.url || '';
         } catch (error: any) {
-            if (error.response) {
-                // ลอง log แบบนี้แทนจะเห็นสถานะและ Header ทั้งหมด
-                console.error('Status:', error.response.status);
-                console.error('Data:', error.response.data);
-                console.dir(error.response); // ดูโครงสร้าง Object แบบละเอียด
-            } else if (error.request) {
-                // กรณี Request ส่งออกไปได้แต่ไม่มีการตอบกลับ (มักจะเป็น CORS)
-                console.error('No response received (CORS or Network issue)');
-            } else {
-                console.error('Error Setting up Request:', error.message);
-            }
+
             throw error;
         }
     },

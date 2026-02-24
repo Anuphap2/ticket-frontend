@@ -3,8 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
-import { CheckCircle, ArrowRight, Home, Ticket, Sparkles } from "lucide-react";
-import { motion } from "framer-motion"; // ใช้สิ่งที่มีอยู่แล้ว
+import {
+  CheckCircle,
+  ArrowRight,
+  Home,
+  Ticket,
+  Sparkles,
+  Loader2,
+} from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function SuccessPage() {
   const { id } = useParams();
@@ -14,9 +21,12 @@ export default function SuccessPage() {
   const [status, setStatus] = useState<"loading" | "success" | "error">(
     "loading",
   );
+  const [countdown, setCountdown] = useState(5);
   const hasCalledAPI = useRef(false);
+
   const paymentStatus = searchParams.get("redirect_status");
 
+  /* ---------------- CONFIRM PAYMENT ---------------- */
   useEffect(() => {
     const confirmPayment = async () => {
       if (!id || hasCalledAPI.current) return;
@@ -26,9 +36,6 @@ export default function SuccessPage() {
         await api.patch(`/bookings/${id}/confirm`);
         setStatus("success");
         toast.success("ยืนยันตั๋วเรียบร้อย!");
-
-        const timer = setTimeout(() => router.push("/my-bookings"), 5000);
-        return () => clearTimeout(timer);
       } catch (err: any) {
         if (err.response?.status === 400 || err.response?.status === 409) {
           setStatus("success");
@@ -44,11 +51,30 @@ export default function SuccessPage() {
     } else {
       setStatus("error");
     }
-  }, [id, paymentStatus, router]);
+  }, [id, paymentStatus]);
+
+  /* ---------------- AUTO REDIRECT ---------------- */
+  useEffect(() => {
+    if (status !== "success") return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          router.push("/my-bookings");
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [status, router]);
+
+  const progress = (countdown / 5) * 100;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 antialiased overflow-hidden">
-      {/* 🎇 สร้างอนุภาคแสงระยิบระยับด้วย Framer Motion (ไม่ต้องลง Lib เพิ่ม) */}
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 overflow-hidden">
+      {/* Sparkle Background */}
       {status === "success" && (
         <div className="absolute inset-0 pointer-events-none">
           {[...Array(12)].map((_, i) => (
@@ -68,62 +94,52 @@ export default function SuccessPage() {
         </div>
       )}
 
-      <div className="w-full max-w-md bg-white p-10 rounded-[2.5rem] shadow-[0_30px_100px_rgba(0,0,0,0.08)] border border-zinc-100 text-center relative z-10">
-        {status === "loading" && (
-          <div className="space-y-6 py-8">
-            <div className="relative mx-auto h-20 w-20">
-              <div className="absolute inset-0 rounded-full border-4 border-zinc-100"></div>
-              <motion.div
-                className="absolute inset-0 rounded-full border-4 border-indigo-600 border-t-transparent"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              />
-              <Ticket className="absolute inset-0 m-auto h-8 w-8 text-indigo-600 opacity-20" />
-            </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-zinc-900 tracking-tight italic uppercase">
-                Verifying...
-              </h2>
-              <p className="text-sm text-zinc-400 font-bold uppercase tracking-widest">
-                กำลังออกตั๋วให้พู่กันครับ
-              </p>
-            </div>
+      <div className="w-full max-w-md bg-white p-10 rounded-[2.5rem] shadow-2xl border border-zinc-100 text-center relative z-10 overflow-hidden">
+        {/* PROGRESS BAR */}
+        {status === "success" && (
+          <div className="absolute top-0 left-0 h-1 bg-zinc-100 w-full">
+            <div
+              className="h-1 bg-indigo-600 transition-all duration-1000"
+              style={{ width: `${progress}%` }}
+            />
           </div>
         )}
 
+        {/* LOADING */}
+        {status === "loading" && (
+          <div className="space-y-6 py-8">
+            <Loader2 className="mx-auto h-12 w-12 animate-spin text-indigo-600" />
+            <h2 className="text-2xl font-black uppercase">
+              Verifying Payment...
+            </h2>
+          </div>
+        )}
+
+        {/* SUCCESS */}
         {status === "success" && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="space-y-8"
           >
-            <div className="relative mx-auto h-24 w-24">
-              <motion.div
-                className="absolute inset-0 bg-green-100 rounded-full"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", damping: 12 }}
-              />
-              <CheckCircle
-                className="absolute inset-0 m-auto h-14 w-14 text-green-600"
-                strokeWidth={1.5}
-              />
-            </div>
+            <CheckCircle
+              className="mx-auto h-20 w-20 text-green-600"
+              strokeWidth={1.5}
+            />
 
             <div className="space-y-3">
-              <h1 className="text-4xl font-black text-zinc-900 tracking-tighter italic uppercase">
-                Done!
-              </h1>
-              <p className="text-zinc-500 font-medium leading-relaxed">
-                การชำระเงินเสร็จสมบูรณ์ <br />
-                พู่กันเตรียมตัวไปสนุกกับคอนเสิร์ตได้เลย!
-              </p>
+              <h1 className="text-4xl font-black uppercase">Payment Success</h1>
+              <p className="text-zinc-500">ระบบได้ออกตั๋วให้เรียบร้อยแล้ว</p>
+            </div>
+
+            <div className="text-xs text-zinc-400 uppercase tracking-widest">
+              Redirecting in {countdown}s
             </div>
 
             <div className="space-y-3 pt-4">
               <button
                 onClick={() => router.push("/my-bookings")}
-                className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-zinc-900 px-6 py-5 text-lg font-black text-white hover:bg-black transition-all shadow-xl active:scale-95"
+                className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-zinc-900 px-6 py-5 text-lg font-black text-white hover:bg-black transition-all active:scale-95"
               >
                 <Ticket className="h-6 w-6 text-indigo-400" />
                 MY TICKETS
@@ -134,42 +150,28 @@ export default function SuccessPage() {
                 onClick={() => router.push("/")}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-50 px-6 py-4 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
               >
-                <Home className="h-4 h-4" /> BACK TO HOME
+                <Home className="h-4 w-4" /> BACK TO HOME
               </button>
-            </div>
-
-            <div className="flex items-center justify-center gap-2 text-[10px] text-zinc-300 font-bold uppercase tracking-[0.2em]">
-              <Sparkles size={12} className="text-indigo-300" /> Redirecting
-              shortly
             </div>
           </motion.div>
         )}
 
+        {/* ERROR */}
         {status === "error" && (
-          <motion.div
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="space-y-6 py-4"
-          >
-            <div className="mx-auto h-20 w-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 text-4xl font-black italic">
+          <div className="space-y-6 py-6">
+            <div className="mx-auto h-20 w-20 bg-rose-50 rounded-full flex items-center justify-center text-rose-500 text-4xl font-black">
               !
             </div>
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-zinc-900 tracking-tight italic uppercase">
-                Something went wrong
-              </h2>
-              <p className="text-zinc-500 text-sm font-medium">
-                ไม่พบข้อมูลการยืนยัน <br />
-                กรุณาตรวจสอบใน "ตั๋วของฉัน" อีกครั้งครับ
-              </p>
-            </div>
+            <h2 className="text-2xl font-black uppercase">
+              Something went wrong
+            </h2>
             <button
               onClick={() => router.push("/my-bookings")}
-              className="inline-block bg-indigo-50 text-indigo-600 px-8 py-3 rounded-xl font-black text-xs tracking-widest uppercase hover:bg-indigo-100 transition-colors"
+              className="bg-indigo-50 text-indigo-600 px-6 py-3 rounded-xl font-bold text-sm uppercase"
             >
               GO TO MY BOOKINGS
             </button>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>
