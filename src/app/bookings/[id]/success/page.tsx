@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
@@ -8,12 +8,11 @@ import {
   ArrowRight,
   Home,
   Ticket,
-  Sparkles,
   Loader2,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-export default function SuccessPage() {
+function SuccessContent() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,18 +56,17 @@ export default function SuccessPage() {
   useEffect(() => {
     if (status !== "success") return;
 
+    if (countdown <= 0) {
+      router.push("/my-bookings");
+      return;
+    }
+
     const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          router.push("/my-bookings");
-          return 0;
-        }
-        return prev - 1;
-      });
+      setCountdown((prev) => prev - 1);
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [status, router]);
+  }, [status, countdown, router]);
 
   const progress = (countdown / 5) * 100;
 
@@ -126,16 +124,13 @@ export default function SuccessPage() {
               className="mx-auto h-20 w-20 text-green-600"
               strokeWidth={1.5}
             />
-
             <div className="space-y-3">
               <h1 className="text-4xl font-black uppercase">Payment Success</h1>
               <p className="text-zinc-500">ระบบได้ออกตั๋วให้เรียบร้อยแล้ว</p>
             </div>
-
             <div className="text-xs text-zinc-400 uppercase tracking-widest">
               Redirecting in {countdown}s
             </div>
-
             <div className="space-y-3 pt-4">
               <button
                 onClick={() => router.push("/my-bookings")}
@@ -145,7 +140,6 @@ export default function SuccessPage() {
                 MY TICKETS
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </button>
-
               <button
                 onClick={() => router.push("/")}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-50 px-6 py-4 text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors"
@@ -175,5 +169,22 @@ export default function SuccessPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// --- Main Page Component ---
+export default function SuccessPage() {
+  return (
+    // การใช้ Suspense จะช่วยแก้ Error "Cannot update a component Router..."
+    // ที่เกิดจากการใช้ useSearchParams ใน Client Component ของ Next.js
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-zinc-50">
+          <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
+        </div>
+      }
+    >
+      <SuccessContent />
+    </Suspense>
   );
 }
