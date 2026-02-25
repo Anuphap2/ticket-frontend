@@ -242,7 +242,7 @@ export default function EventDetailsPage() {
               <div className="relative h-[40vh] w-full bg-black overflow-hidden">
                 {event?.imageUrl && (
                   <Image
-                    src={event.imageUrl}
+                    src={`${process.env.NEXT_PUBLIC_API_URL}${event.imageUrl}`}
                     alt="banner"
                     fill
                     className="object-cover opacity-50 scale-105"
