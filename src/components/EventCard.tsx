@@ -51,7 +51,7 @@ export function EventCard({ event }: EventCardProps) {
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-zinc-100">
         {event.imageUrl ? (
           <Image
-            src={event.imageUrl}
+            src={`${process.env.NEXT_PUBLIC_API_URL}${event.imageUrl}`}
             alt={event.title}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"
