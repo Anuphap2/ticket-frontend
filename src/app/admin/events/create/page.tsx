@@ -258,10 +258,12 @@ export default function CreateEventPage() {
 
     const previewUrl = URL.createObjectURL(file);
     setValue("imageUrl", previewUrl);
+    setSelectedFile(file); // Add this to track the file for upload, matching edit/page.tsx
   };
 
   const handleClearImage = () => {
     setValue("imageUrl", "");
+    setSelectedFile(null); // Add this to clear the file, matching edit/page.tsx
   };
 
   const onSubmit = async (data: any) => {
