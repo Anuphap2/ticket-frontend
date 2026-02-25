@@ -211,8 +211,15 @@ export default function EditEventPage() {
   const [isFetching, setIsFetching] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [originalImageUrl, setOriginalImageUrl] = useState<string>("");
-
   const { updateEvent, fetchEvent, currentEvent } = useEvents();
+  const getImageUrl = (path: string) => {
+    if (!path) return "";
+    if (path.startsWith("blob:") || path.startsWith("http")) return path;
+
+    // ดึงค่าจาก process.env ถ้าไม่มีให้ใช้ localhost:3000 เป็นค่าเริ่มต้น
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    return `${baseUrl}${path}`;
+  };
 
   const { register, control, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: {
@@ -485,7 +492,7 @@ export default function EditEventPage() {
                 {imageUrlPreview ? (
                   <>
                     <Image
-                      src={imageUrlPreview}
+                      src={getImageUrl(imageUrlPreview)}
                       alt="Preview"
                       fill
                       className="object-cover transition-transform duration-700"
