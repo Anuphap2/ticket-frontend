@@ -410,17 +410,17 @@ export default function CreateEventPage() {
         {watchZones?.length > 0 && <GlobalStadiumPreview zones={watchZones as any[]} />}
 
         {/* Submit Section */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-8 pb-32">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 pb-32">
           <div className="flex items-center gap-4 text-zinc-400">
             <Info size={16} />
-            <p className="text-[10px] font-bold uppercase tracking-widest">Double check all seat prices before publishing</p>
+            <p className="text-xs font-bold uppercase tracking-widest">Double check all seat prices before publishing</p>
           </div>
-          <div className="flex items-center gap-6">
-            <button type="button" onClick={() => router.back()} className="text-[10px] font-black text-zinc-400 hover:text-zinc-900 tracking-widest transition-colors uppercase">Cancel</button>
+          <div className="flex items-center gap-8">
+            <button type="button" onClick={() => router.back()} className="h-14 px-6 rounded-3xl border-2 text-md font-black text-red-400 hover:text-red-600 tracking-widest transition-colors uppercase">Cancel</button>
             <Button
               type="submit"
               disabled={isLoading}
-              className="h-24 px-16 bg-zinc-900 text-white rounded-[40px] font-black text-2xl shadow-2xl hover:bg-black hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+              className="h-24 px-8 bg-zinc-900 text-white rounded-4xl font-black text-xl shadow-2xl hover:bg-black hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
             >
               {isLoading ? <Loader2 className="animate-spin" /> : "PUBLISH NOW"}
             </Button>

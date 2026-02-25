@@ -50,7 +50,7 @@ export default function AdminLayout({
   ];
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100">
+    <div className="min-h-screen bg-linear-to-br from-zinc-50 to-zinc-100">
       {/* Sidebar */}
       <aside className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg flex flex-col">
         {/* ส่วนหัว */}
