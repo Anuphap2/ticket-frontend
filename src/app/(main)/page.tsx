@@ -62,7 +62,7 @@ export default function HomePage() {
       <HeroSection />
 
       <main
-        className="mx-auto max-w-7xl px-6 py-24 sm:px-8 lg:px-12 pb-44"
+        className="scroll-mt-24 mx-auto max-w-7xl px-6 py-24 sm:px-8 lg:px-12 pb-44"
         id="upcoming-events"
       >
         {/* Section Header */}
