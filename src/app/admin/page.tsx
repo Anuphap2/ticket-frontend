@@ -144,20 +144,20 @@ export default function AdminDashboard() {
           <Link href="/admin/bookings">
             <Button
               variant="outline"
-              className="rounded-2xl bg-white font-black text-[10px] px-6 h-12 uppercase"
+              className="rounded-2xl border border-gray-400 bg-white font-black text-[10px] px-6 h-12 uppercase hover:bg-zinc-100 hover:scale-105 duration-100 transition-all"
             >
               <Ticket size={14} className="mr-2" /> Bookings
             </Button>
           </Link>
 
           <Link href="/admin/events/create">
-            <Button className="rounded-2xl bg-zinc-900 hover:bg-black text-white font-black text-[10px] px-6 h-12 uppercase">
+            <Button className="rounded-2xl bg-zinc-900 hover:bg-black text-white font-black text-[10px] px-6 h-12 uppercase hover:scale-105 duration-100 transition-all">
               <Plus size={14} className="mr-2" /> New Event
             </Button>
           </Link>
 
           <Link href="/admin/users">
-            <Button className="rounded-2xl bg-zinc-900 hover:bg-black text-white font-black text-[10px] px-6 h-12 uppercase">
+            <Button className="rounded-2xl bg-zinc-900 hover:bg-black text-white font-black text-[10px] px-6 h-12 uppercase hover:scale-105 duration-100 transition-all">
               <Users size={14} className="mr-2" /> Users
             </Button>
           </Link>
