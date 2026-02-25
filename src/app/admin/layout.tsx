@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
@@ -10,6 +10,8 @@ import {
   LogOut,
   Ticket,
   Users,
+  Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui";
 
@@ -21,6 +23,7 @@ export default function AdminLayout({
   const { user, loading, isAuthenticated, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!loading) {
@@ -51,14 +54,41 @@ export default function AdminLayout({
 
   return (
     <div className="min-h-screen bg-linear-to-br from-zinc-50 to-zinc-100">
+      {/* Mobile Topbar */}
+      <div className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white shadow flex items-center px-4 z-40">
+        <button onClick={() => setSidebarOpen(true)}>
+          <Menu className="w-6 h-6 text-zinc-700" />
+        </button>
+        <h1 className="ml-4 font-bold text-indigo-600">Admin Panel</h1>
+      </div>
+
+      {/* Backdrop (mobile only) */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg flex flex-col">
-        {/* ส่วนหัว */}
-        <div className="flex h-16 shrink-0 items-center justify-center border-b border-zinc-200">
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg flex flex-col
+          transform transition-transform duration-300
+          ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}
+          md:translate-x-0
+        `}
+      >
+        {/* Header */}
+        <div className="flex h-16 items-center justify-between px-4 border-b border-zinc-200">
           <h1 className="text-xl font-bold text-indigo-600">Admin Panel</h1>
+
+          <button className="md:hidden" onClick={() => setSidebarOpen(false)}>
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* เมนูหลักตรงกลาง (เพิ่ม data-lenis-prevent เพื่อไม่ให้กวนการทำงานของหน้าต่างหลัก) */}
+        {/* Navigation */}
         <nav
           className="flex-1 overflow-y-auto px-4 py-6 space-y-2"
           data-lenis-prevent="true"
@@ -66,10 +96,12 @@ export default function AdminLayout({
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
+
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={() => setSidebarOpen(false)} // ✅ ปิดตอนกด
                 className={`flex items-center rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
                   isActive
                     ? "bg-indigo-50 text-indigo-700"
@@ -83,31 +115,18 @@ export default function AdminLayout({
           })}
         </nav>
 
-        {/* ส่วนล่างสุด (ปุ่ม Home และ Logout) */}
-        <div className="mt-auto shrink-0 w-full border-t border-zinc-200 p-4 flex flex-col gap-2">
+        {/* Bottom Section */}
+        <div className="mt-auto border-t border-zinc-200 p-4 flex flex-col gap-2">
           <Link
             href="/"
-            className="flex items-center w-full justify-start rounded-md px-4 py-2 text-sm font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:text-zinc-900"
+            className="flex items-center rounded-md px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth="1.5"
-              stroke="currentColor"
-              className="size-6 mr-3"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
-              />
-            </svg>
             Home page
           </Link>
+
           <Button
             variant="ghost"
-            className="w-full justify-start text-red-600 transition-colors hover:bg-red-50 hover:text-red-700"
+            className="w-full justify-start text-red-600 hover:bg-red-50 hover:text-red-700"
             onClick={logout}
           >
             <LogOut className="mr-3 h-5 w-5" />
@@ -117,8 +136,8 @@ export default function AdminLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="pl-64 w-full min-h-screen">
-        <div className="p-8 max-w-7xl mx-auto">{children}</div>
+      <main className="min-h-screen md:ml-64 pt-16 md:pt-0">
+        <div className="p-6 md:p-8 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>
   );
