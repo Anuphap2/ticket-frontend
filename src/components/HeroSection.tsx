@@ -37,7 +37,7 @@ export function HeroSection() {
               <>
                 Welcome Back, <br />
                 <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">
-                  {user?.name || "Friend"}
+                  {user?.firstName ? (user.firstName + (user.lastName ? ' ' + user.lastName : '')) : (user?.name || 'Friend')}
                 </span>
               </>
             ) : (

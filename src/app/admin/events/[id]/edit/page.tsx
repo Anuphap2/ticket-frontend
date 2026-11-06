@@ -200,7 +200,7 @@ export default function EditEventPage() {
         ? new Date(currentEvent.date).toISOString().slice(0, 16)
         : "";
       // Store the real server URL before resetting form
-      setOriginalImageUrl(currentEvent.imageUrl);
+      setOriginalImageUrl(currentEvent.imageUrl || '');
       reset({
         ...currentEvent,
         date: formattedDate,

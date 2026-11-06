@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/authService";
 import { Button, Input, CardContent, CardFooter } from "@/components/ui";
+import { User, Shield, Sparkles, ArrowLeft } from "lucide-react";
 import gsap from "gsap";
 
 type LoginFormData = {
@@ -15,7 +16,6 @@ type LoginFormData = {
   password: string;
 };
 
-// 1. เปลี่ยนชื่อจาก LoginPage เป็น LoginContent และลบ export default ออก
 function LoginContent() {
   const searchParams = useSearchParams();
   const isExpired = searchParams.get("expired") === "true";
@@ -23,6 +23,7 @@ function LoginContent() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>();
 
@@ -50,7 +51,11 @@ function LoginContent() {
 
       login(access_token, refresh_token, userData);
       toast.success("Welcome back!", { id: toastId });
-      router.push("/");
+      if (userData?.role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/");
+      }
     } catch (error: any) {
       toast.error(error.response?.data?.message || "Invalid credentials", {
         id: toastId,
@@ -58,6 +63,12 @@ function LoginContent() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleQuickLogin = (email: string, pass: string) => {
+    setValue("email", email);
+    setValue("password", pass);
+    onSubmit({ email, password: pass });
   };
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -73,7 +84,7 @@ function LoginContent() {
       // Left panel slide in
       tl.from(formWrapperRef.current, {
         opacity: 0,
-        duration: 1,
+        duration: 0.8,
       });
 
       // Stagger content
@@ -81,10 +92,11 @@ function LoginContent() {
         ".animate-item",
         {
           opacity: 0,
-          duration: 0.5,
-          stagger: 0.15,
+          y: 20,
+          duration: 0.4,
+          stagger: 0.1,
         },
-        "-=0.6",
+        "-=0.4",
       );
     }, containerRef);
 
@@ -98,45 +110,63 @@ function LoginContent() {
     >
       <div className="flex h-full w-full rounded-2xl bg-white shadow-2xl overflow-hidden">
         {/* Left Side */}
-        <div className="flex w-full flex-col lg:w-2/5 overflow-hidden">
-          {/* Animated Wrapper (Prevents Scrollbar Bug) */}
+        <div className="flex w-full flex-col lg:w-2/5 overflow-y-auto">
           <div
             ref={formWrapperRef}
-            className="flex flex-col h-full overflow-y-hidden"
+            className="flex flex-col min-h-full justify-between"
           >
-            <CardContent className="grow p-8 lg:p-12">
-              <div className="mb-8 animate-item">
-                <Link href="/" className="flex gap-2 mb-4 items-center p-2 rounded-md border w-fit text-white bg-red-400 pr-4 hover:bg-red-500 transition-colors duration-200">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="size-6"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15.75 19.5 8.25 12l7.5-7.5"
-                    />
-                  </svg>
-                  Back
+            <CardContent className="p-8 lg:p-12 space-y-6">
+              <div className="animate-item">
+                <Link
+                  href="/"
+                  className="inline-flex gap-2 mb-4 items-center px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-semibold text-zinc-600 bg-zinc-50 hover:bg-zinc-100 transition-colors"
+                >
+                  <ArrowLeft className="w-3.5 h-3.5" />
+                  Back to Home
                 </Link>
-                <h1 className="text-3xl font-extrabold text-gray-900">
+                <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
                   Welcome Back
                 </h1>
-                <p className="text-gray-500">
-                  Sign in to continue to your account.
+                <p className="text-sm text-gray-500 mt-1">
+                  Sign in to book concert tickets or explore the system.
                 </p>
               </div>
 
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                <section className="space-y-4 animate-item">
-                  <h3 className="text-sm font-semibold uppercase tracking-wider text-blue-600">
-                    Account Access
-                  </h3>
+              {/* ⚡ One-Click Portfolio Demo Section */}
+              <div className="animate-item p-4 bg-gradient-to-br from-indigo-50/80 to-purple-50/80 border border-indigo-100 rounded-2xl space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-indigo-950 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                    Portfolio Demo Mode
+                  </span>
+                  <span className="text-[10px] font-mono text-indigo-600 bg-white/80 px-2 py-0.5 rounded-full border border-indigo-200 font-semibold">
+                    1-Click Login
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin("user@demo.com", "demo123")}
+                    disabled={isLoading}
+                    className="py-2.5 px-3 text-xs font-bold text-zinc-800 bg-white border border-indigo-200/80 rounded-xl hover:bg-indigo-50 hover:border-indigo-400 hover:text-indigo-600 transition-all text-center flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <User className="w-3.5 h-3.5 text-indigo-600" />
+                    Demo User
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickLogin("admin@demo.com", "admin123")}
+                    disabled={isLoading}
+                    className="py-2.5 px-3 text-xs font-bold text-zinc-800 bg-white border border-purple-200/80 rounded-xl hover:bg-purple-50 hover:border-purple-400 hover:text-purple-600 transition-all text-center flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
+                  >
+                    <Shield className="w-3.5 h-3.5 text-purple-600" />
+                    Demo Admin
+                  </button>
+                </div>
+              </div>
 
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                <section className="space-y-4 animate-item">
                   <div className="grid grid-cols-1 gap-4">
                     <Input
                       label="Email Address"
@@ -164,31 +194,22 @@ function LoginContent() {
                   </div>
                 </section>
 
-                <div className="flex justify-end animate-item">
-                  <Link
-                    href="/forgot-password"
-                    className="text-sm font-semibold text-gray-500 hover:text-blue-600 transition-colors"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="animate-item w-full py-6 text-base font-bold uppercase tracking-widest shadow-lg transition-transform active:scale-[0.98]"
+                  className="animate-item w-full py-5 text-sm font-bold uppercase tracking-wider shadow-lg transition-transform active:scale-[0.98] cursor-pointer"
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </CardContent>
 
-            <CardFooter className="p-6 text-center animate-item">
-              <p className="w-full text-sm text-gray-600">
+            <CardFooter className="p-6 text-center animate-item border-t border-zinc-100">
+              <p className="w-full text-xs text-gray-600">
                 Don&apos;t have an account?{" "}
                 <Link
                   href="/register"
-                  className="font-bold text-blue-600 hover:text-blue-700 hover:underline"
+                  className="font-bold text-indigo-600 hover:text-indigo-700 hover:underline"
                 >
                   Register here
                 </Link>
@@ -203,16 +224,15 @@ function LoginContent() {
             className="absolute inset-0 bg-[url('/login_page_picture.png')] bg-cover bg-center"
             aria-hidden="true"
           >
-            <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
           </div>
 
           <div className="relative flex h-full flex-col justify-end p-12 text-white">
-            <h2 className="mb-4 text-5xl font-bold leading-tight animate-item">
-              Feel the Energy
+            <h2 className="mb-4 text-4xl lg:text-5xl font-black leading-tight tracking-tight animate-item">
+              Concert Ticket Booking
             </h2>
-            <p className="max-w-md text-xl font-light text-gray-200 animate-item">
-              Experience unforgettable live moments. Secure your tickets and be
-              part of something extraordinary.
+            <p className="max-w-md text-base font-medium text-gray-300 animate-item leading-relaxed">
+              Experience the High Concurrency Architecture featuring FIFO Queueing, Atomic Stock Updates, and Interactive Seating.
             </p>
           </div>
         </div>
@@ -221,7 +241,6 @@ function LoginContent() {
   );
 }
 
-// 2. สร้าง LoginPage ตัวใหม่เพื่อครอบ Suspense
 export default function LoginPage() {
   return (
     <Suspense

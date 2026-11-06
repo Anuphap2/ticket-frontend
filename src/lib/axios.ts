@@ -1,11 +1,54 @@
-import axios from "axios";
+import axios, { AxiosAdapter } from "axios";
 import { ROUTES } from "@/lib/constants";
+import { mockStore } from "@/lib/mockStore";
+import { handleMockRequest } from "@/lib/mockApi";
+
+// Create custom adapter that handles demo mock API in portfolio mode
+const defaultAdapter = axios.getAdapter(axios.defaults.adapter);
+
+const demoMockAdapter: AxiosAdapter = async (config) => {
+  const isDemo = mockStore.isDemoMode();
+
+  if (isDemo) {
+    let parsedData = config.data;
+    if (typeof config.data === "string") {
+      try {
+        parsedData = JSON.parse(config.data);
+      } catch {}
+    }
+
+    try {
+      const mockRes = await handleMockRequest(
+        config.method || "get",
+        config.url || "",
+        parsedData,
+        config.headers
+      );
+
+      if (mockRes) {
+        return {
+          data: mockRes.data,
+          status: mockRes.status,
+          statusText: "OK",
+          headers: {},
+          config,
+        };
+      }
+    } catch (err) {
+      console.warn("Demo Mock API handling error:", err);
+    }
+  }
+
+  // Fallback to real backend adapter if demo mode is off or route unhandled
+  return defaultAdapter(config);
+};
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000",
   headers: {
     "Content-Type": "application/json",
   },
+  adapter: demoMockAdapter,
 });
 
 const handleLogout = (reason = "expired") => {
